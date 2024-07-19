@@ -12,7 +12,7 @@ rm(list=ls())
 ## Packages ##
 #----------------------------------
 # Source the package setup script
-Git <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Carbon-Markets"
+Git <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets"
 setwd(Git)
 source("Packages.R")
 
