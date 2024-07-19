@@ -1,7 +1,8 @@
-## ECOM90022 Research Methods, Semester 1, 2024
+### Econometrics Research Project , Semester 2, 2024
+## The pursuit of a global carbon market; A time varying analysis of international compliance carbon markets
 ## Read data from priceR package for necessary currency conversion rates
 ## Author: Henry Wyld
-## Date of creation: 2024-04-21
+## Date of creation: 2024-07-19
 
 #-------------------------------------
 # clear memory

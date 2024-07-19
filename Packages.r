@@ -1,7 +1,8 @@
-## ECOM90022 Research Methods, Semester 1, 2024
-## Replication for Chenyan Lyu, Bert Scholtens, Integration of the international carbon market: A time-varying analysis, Renewable and Sustainable Energy Reviews, Volume 191,
+### Econometrics Research Project , Semester 2, 2024
+## The pursuit of a global carbon market; A time varying analysis of international compliance carbon markets
 ## Centralised functions for installing and loading packages and setting working directories
 ## Henry Wyld
+## Date of creation: 2024-07-19
 
 # Function to install, load, and optionally update packages
 load_packages <- function(update = FALSE) {
