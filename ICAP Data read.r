@@ -21,8 +21,8 @@ source("Packages.R")
 # Set the working directory
 setwd(ICAP_Data)
 
-# Read the Excel file
-df <- readxl::read_excel("Raw ICAP Data.xlsx")
+# Read the csv file
+df <- readr::read_csv("Primary.csv")
 
 # Remove the column names and the first row
 df <- df[-c(1:1), ]
