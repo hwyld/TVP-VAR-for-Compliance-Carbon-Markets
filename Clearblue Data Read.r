@@ -25,20 +25,20 @@ setwd(Clearblue_Data)
 # Set Paths to the Excel files
 path <- Clearblue_Data
 
-# Create loop to read all Excel files in the directory
-files <- list.files(path, pattern = "*.xlsx", full.names = TRUE)
+# Create loop to read all CSV files in the directory
+files <- list.files(path, pattern = "*.csv", full.names = TRUE)
 
-read_and_format_excel <- function(file) {
+read_and_format_csv <- function(file) {
   # Initially read only the first two rows to get the column names and number of columns
-  temp_df <- read_excel(file, n_max = 2, col_names = FALSE)
+  temp_df <- read.csv(file, nrows = 2, header = FALSE)
   col_names <- as.character(unlist(temp_df[1, ])) # Save the column names from the first row
   num_cols <- ncol(temp_df)
   
-  # Create a vector of column types with 'date' for the first column and 'numeric' for the others
-  col_types <- c("date", rep("numeric", num_cols - 1))
+  # Create a vector of column types with 'Date' for the first column and 'numeric' for the others
+  col_types <- c("Date", rep("numeric", num_cols - 1))
   
   # Read the entire dataset with the specified column types, skipping the first row
-  df <- read_excel(file, skip = 1, col_names = FALSE, col_types = col_types)
+  df <- read.csv(file, skip = 1, header = FALSE, colClasses = col_types)
   
   # Replace the column names with the saved column names
   colnames(df) <- col_names
@@ -48,10 +48,10 @@ read_and_format_excel <- function(file) {
 }
 
 # Run the function across the list of files creating dataframes for each file
-dataframes <- lapply(files, read_and_format_excel)
+dataframes <- lapply(files, read_and_format_csv)
 
 # Create a list of dataframes with meaningful names
-dataframes <- setNames(dataframes, gsub(".xlsx", "", list.files(path, pattern = "*.xlsx")))
+dataframes <- setNames(dataframes, gsub(".csv", "", list.files(path, pattern = "*.csv")))
 
 # Check the structure of the dataframes
 lapply(dataframes, head)
