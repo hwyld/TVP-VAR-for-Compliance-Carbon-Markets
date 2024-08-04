@@ -19,7 +19,8 @@ source("Packages.R")
 # Set the working directory
 setwd(Clearblue_Data)
 
-## Read the datasets from Excel files ##
+## Read the datasets from CSV files ##
+
 #-----------------------------------------
 
 # Set Paths to the Excel files
@@ -28,11 +29,23 @@ path <- Clearblue_Data
 # Create loop to read all CSV files in the directory
 files <- list.files(path, pattern = "*.csv", full.names = TRUE)
 
+# Print the names of the files being processed
+print("Files being processed:")
+print(files)
+
 read_and_format_csv <- function(file) {
+  # Print the file name being processed
+  print(paste("Processing file:", file))
+  
   # Initially read only the first two rows to get the column names and number of columns
   temp_df <- read.csv(file, nrows = 2, header = FALSE)
   col_names <- as.character(unlist(temp_df[1, ])) # Save the column names from the first row
   num_cols <- ncol(temp_df)
+  
+  # Print the column names and number of columns
+  print("Column names:")
+  print(col_names)
+  print(paste("Number of columns:", num_cols))
   
   # Create a vector of column types with 'Date' for the first column and 'numeric' for the others
   col_types <- c("Date", rep("numeric", num_cols - 1))
@@ -42,6 +55,10 @@ read_and_format_csv <- function(file) {
   
   # Replace the column names with the saved column names
   colnames(df) <- col_names
+  
+  # Print the first few rows of the dataframe
+  print("First few rows of the dataframe:")
+  print(head(df))
   
   # Return the formatted dataframe
   return(df)
@@ -62,276 +79,96 @@ dataframes <- lapply(dataframes, as.data.frame)
 # Create the dataframes in the global environment
 list2env(dataframes, envir = .GlobalEnv)
 
-#-------------------------------------
+#-----------------------------------------
+
+### Data Merging ###
+
+#-----------------------------------------
+
+# Merge the dataframes
+merged_data <- Reduce(function(x, y) merge(x, y, by = "DateTime", all = TRUE), dataframes)
+
+# Order the data by DateTime
+merged_data <- merged_data[order(merged_data$DateTime), ]
+
+# Define the list of columns to keep ; 
+# ACCU Spot Price - RepuTex = ACCU Spot Price, 
+# CEA Closing Price = China Emission Allowance Close, 
+# Front December - ICE.x = EUA Front December - ICE, 
+# Front December - ICE.y = UKA Front December - ICE, 
+# NZUs - Spot = NZU Spot Price , 
+# KAU Closing Price = Korean Allowance Close , 
+# Washington Carbon Allowance Front December = Washington Front December - ICE , 
+# CCA - Front December - ICE = CCA Front December - ICE
+cols_to_keep <- c("DateTime", "ACCU Spot Price - RepuTex", "CEA Closing Price", "Front December - ICE.x", "Front December - ICE.y", "NZUs - Spot", "KAU Closing Price", "Washington Carbon Allowance Front December", "CCA - Front December - ICE")
+
+# Subset the dataframe to only include these columns
+merged_data <- merged_data[, cols_to_keep]
+
+# Rename the columns
+colnames(merged_data) <- c("Date", "ACCU", "CEA", "EUA", "UKA", "NZU", "KAU", "WCA", "CCA")
 
 ### Data Trimming  ###
 
-# Remove Auction price from the EU ETS dataframe
-eu_ets_trimmed <- eu_ets[, -grep("Auction", colnames(eu_ets))]
-
-# Remove all numeric columns except last one from new_zealand_ets dataframe
-new_zealand_ets_trimmed <- new_zealand_ets[, c(1, ncol(new_zealand_ets))]
-
-# Remove all numeric columns except those that contain CCA in the column name for the WCI series
-wci_trimmed <- WCI[, c(1, grep("CCA", colnames(WCI)))]
-
-# Merging multiple data frames using full_join for a full outer join
-merged_data <- eu_ets_trimmed %>%
-  full_join(new_zealand_ets_trimmed, by = "DateTime") %>%
-  full_join(wci_trimmed, by = "DateTime")
-
-# Rename the columns in the merged data
-
-colnames(merged_data)[2] <- "EUA - Front December - ICE"
-colnames(merged_data)[3] <- "EUA - Front Month - ICE"
-colnames(merged_data)[4] <- "NZU - Cash Spot"
-colnames(merged_data)[5] <- "CCA - Front December - ICE"
-colnames(merged_data)[6] <- "CCA - Cash Spot"
-
-# Sort the data by DateTime
-merged_data <- merged_data[order(merged_data$DateTime), ]
-tail(merged_data)
-max(merged_data$DateTime)
 #-------------------------------------
 
-#### Data Cleaning ####
-setwd(Git)
-# Convert domestic currency to EUR for all series - use the Monthly Average Exchange Rates per the ICAP reporting
-# Convert domestic currency to EUR for all series - use the Daily Exchange Rates per Refinitiv
-#-------------------------------------
+# Convert the data to a time series
+merged_data$Date <- as.Date(merged_data$Date, format = "%Y-%m-%d")
 
-# Read the historical exchange rates from file
-#daily_EUR_rates <- read.csv("EUR_denom_exchange_rates.csv")
-daily_EUR_rates <- read.csv("Refinitiv_Exchange_Rates.csv")
+# Remove weekends and public holidays
+merged_data_trimmed <- merged_data[!weekdays(merged_data$Date) %in% c("Saturday", "Sunday"), ]
 
-# Sort in ascending order by 'Date'
-daily_EUR_rates <- daily_EUR_rates[order(daily_EUR_rates$Date), ]
+# Order the data by date
+merged_data_trimmed <- merged_data_trimmed[order(merged_data_trimmed$Date), ]
 
-# Convert the 'Date' column to Date class
-daily_EUR_rates$Date <- as.Date(daily_EUR_rates$Date, format = "%d/%m/%Y")
+# Check for duplicates
+duplicated_rows <- merged_data_trimmed[duplicated(merged_data_trimmed), ]
 
-# Create a copy of merged_data
-merged_data_EUR_denom <- merged_data
-
-# Convert the DateTime to Date if necessary
-merged_data_EUR_denom$DateTime <- as.Date(merged_data_EUR_denom$DateTime)
-
-# Rename DateTime as Date
-colnames(merged_data_EUR_denom)[1] <- "Date"
-
-# Merge the datasets on the 'Date' column
-merged_data_EUR_denom <- left_join(merged_data_EUR_denom, daily_EUR_rates, by = "Date")
-
-# Currency conversions
-merged_data_EUR_denom$`NZU - Cash Spot_EUR` <- merged_data_EUR_denom$`NZU - Cash Spot` * 1/merged_data_EUR_denom$NZD
-merged_data_EUR_denom$`CCA - Front December - ICE_EUR` <- merged_data_EUR_denom$`CCA - Front December - ICE` * 1/merged_data_EUR_denom$USD
-merged_data_EUR_denom$`CCA - Cash Spot_EUR` <- merged_data_EUR_denom$`CCA - Cash Spot` * 1/merged_data_EUR_denom$USD
-
-# Get the column names to keep (those in merged_data_EUR_denom that are not in daily_EUR_rates)
-cols_to_keep <- setdiff(colnames(merged_data_EUR_denom), colnames(daily_EUR_rates))
-
-# Select columns that contain 'EUA' or end with '_EUR'
-cols_to_keep <- grep("EUA|_EUR$", names(merged_data_EUR_denom), value = TRUE)
-
-# Add Date to the list of columns to keep
-cols_to_keep <- c("Date",cols_to_keep)
-
-# Subset the dataframe to only include these columns
-merged_data_EUR_denom <- merged_data_EUR_denom[, cols_to_keep]
-
-# Sort the data by 'Date'
-merged_data_EUR_denom <- merged_data_EUR_denom[order(merged_data_EUR_denom$Date), ]
-
-# Verify the converted prices
-tail(merged_data)
-tail(merged_data_EUR_denom)
-
-# Use the column names without the '_EUR' suffix
-colnames(merged_data_EUR_denom) <- gsub("_EUR", "", colnames(merged_data_EUR_denom))
-
-tail(merged_data)
-tail(merged_data_EUR_denom)
-
-colnames(merged_data_EUR_denom) = colnames(merged_data)
-
-# rename DateTime to Date in merged_data
-colnames(merged_data)[1] <- "Date"
-colnames(merged_data_EUR_denom)[1] <- "Date"
-
-#-------------------------------------
-
-setwd(Clearblue_Data)
+# Check max and min dates
+max_date <- max(merged_data_trimmed$Date)
+min_date <- min(merged_data_trimmed$Date)
 
 #### Plot the data - Allowance Price ####
 #---------------------------------------
 
-# Plot the time series
-a <- ggplot(merged_data, aes(x = Date)) +
-  geom_line(aes(y = `EUA - Front December - ICE`, color = "EUA")) +
-  geom_line(aes(y = `NZU - Cash Spot`, color = "NZU")) +
-  geom_line(aes(y = `CCA - Front December - ICE`, color = "CCA")) +
-  labs(title = "Local Currency Denominated Allowance Prices",
-       x = "Date",
-       y = "Price") +
-  scale_color_manual(values = c("EUA" = "red", "NZU" = "blue", "CCA" = "#d0ff00")) +
-  theme_minimal() +
-  labs(caption = "Source: Clearblue")
+## Domestic Currency Allowance prices ##
 
-# Convert to Plotly object
-p <- ggplotly(a)
-
-# Define custom JavaScript for dynamic x-axis adjustment
-customJS <- "
-function(el, x) {
-  var gd = document.getElementById(el.id);
-  gd.on('plotly_relayout', function(eventdata){
-    if(eventdata['xaxis.range[0]'] && eventdata['xaxis.range[1]']) {
-      var update = {
-        'xaxis.range': [eventdata['xaxis.range[0]'], eventdata['xaxis.range[1]']]
-      };
-      Plotly.relayout(gd, update);
-    }
-  });
+# Create a plotly plot for all columns
+plot_all_columns <- function(data) {
+  p <- plot_ly(data, x = ~Date)
+  
+  # Iterate over each column except the Date column
+  for (col in colnames(data)[-which(colnames(data) == "Date")]) {
+    p <- add_trace(p, y = as.formula(paste0("~`", col, "`")), name = col, type = 'scatter', mode = 'lines')
+  }
+  
+  p <- layout(p, title = 'Secondary Market Data',
+              xaxis = list(title = 'Date'),
+              yaxis = list(title = 'Value'))
+  
+  return(p)
 }
-"
 
-# Add range selector buttons, source annotation, and apply onRender with custom JavaScript
-final_plot <- p %>% layout(
-  xaxis = list(
-    type = "date",
-    rangeselector = list(
-      buttons = list(
-        list(count = 6, label = "6m", step = "month", stepmode = "backward"),
-        list(count = 1, label = "1y", step = "year", stepmode = "backward"),
-        list(count = 5, label = "5y", step = "year", stepmode = "backward"),
-        list(step = "all", label = "All")
-      )
-    ),
-    rangeslider = list(visible = TRUE)
-  ),
-  annotations = list(
-    list(
-      text = "Source: Clearblue",
-      x = 0.01, # Position on the x-axis
-      xref = "paper", # Relative to the entire width of the plot
-      y = -0.2, # Position on the y-axis
-      yref = "paper", # Relative to the entire height of the plot
-      showarrow = FALSE, # No arrow pointing
-      xanchor = "left",
-      yanchor = "top",
-      font = list(
-        family = "Arial",
-        size = 12,
-        color = "grey"
-      )
-    )
-  )
-) %>% onRender(customJS)
-
-# Display the final plot
-#final_plot
-
-# Save the plot to an HTML file
-htmlwidgets::saveWidget(final_plot, "Clearblue_Price_Plot.html")
+# Call the function to plot the data
+p <- plot_all_columns(merged_data_trimmed)
 
 # Save the plot
-#ggsave("Clearblue_Plot.png",bg = "white")
+htmlwidgets::saveWidget(p, "Clearblue_Allowance_Price_Plot.html")
 
 #---------------------------------------
 
-#### Plot the data - Allowance Price EUR Denominated ####
+#### Export the data ####
+# Export cleaned and trimmed data
 #---------------------------------------
-
-# Plot the time series
-b <- ggplot(merged_data_EUR_denom, aes(x = Date)) +
-  geom_line(aes(y = `EUA - Front December - ICE`, color = "EUA")) +
-  geom_line(aes(y = `NZU - Cash Spot`, color = "NZU")) +
-  geom_line(aes(y = `CCA - Front December - ICE`, color = "CCA")) +
-  labs(title = "EUR Denominated Allowance Prices",
-       x = "Date",
-       y = "Price") +
-  scale_color_manual(values = c("EUA" = "red", "NZU" = "blue", "CCA" = "#d0ff00")) +
-  theme_minimal() +
-  labs(caption = "Source: Clearblue")
-
-# Convert to Plotly object
-EUR <- ggplotly(b)
-
-# Define custom JavaScript for dynamic x-axis adjustment
-customJS <- "
-function(el, x) {
-  var gd = document.getElementById(el.id);
-  gd.on('plotly_relayout', function(eventdata){
-    if(eventdata['xaxis.range[0]'] && eventdata['xaxis.range[1]']) {
-      var update = {
-        'xaxis.range': [eventdata['xaxis.range[0]'], eventdata['xaxis.range[1]']]
-      };
-      Plotly.relayout(gd, update);
-    }
-  });
-}
-"
-
-# Add range selector buttons, source annotation, and apply onRender with custom JavaScript
-final_plot_EUR <- EUR %>% layout(
-  xaxis = list(
-    type = "date",
-    rangeselector = list(
-      buttons = list(
-        list(count = 6, label = "6m", step = "month", stepmode = "backward"),
-        list(count = 1, label = "1y", step = "year", stepmode = "backward"),
-        list(count = 5, label = "5y", step = "year", stepmode = "backward"),
-        list(step = "all", label = "All")
-      )
-    ),
-    rangeslider = list(visible = TRUE)
-  ),
-  annotations = list(
-    list(
-      text = "Source: Clearblue",
-      x = 0.01, # Position on the x-axis
-      xref = "paper", # Relative to the entire width of the plot
-      y = -0.2, # Position on the y-axis
-      yref = "paper", # Relative to the entire height of the plot
-      showarrow = FALSE, # No arrow pointing
-      xanchor = "left",
-      yanchor = "top",
-      font = list(
-        family = "Arial",
-        size = 12,
-        color = "grey"
-      )
-    )
-  )
-) %>% onRender(customJS)
-
-# Display the final plot
-#final_plot_EUR 
-
-# Save the plot to an HTML file
-htmlwidgets::saveWidget(final_plot_EUR , "Clearblue_EUR_Price_Plot.html")
-
-# Save the plot
-#ggsave("Clearblue_EUR_Price_Plot.png",bg = "white")
-
-#---------------------------------------
-
-# Order the data by DateTime
-merged_data <- merged_data[order(merged_data$Date), ]
-merged_data_EUR_denom <- merged_data_EUR_denom[order(merged_data_EUR_denom$Date), ]
-
-tail(merged_data)
-tail(merged_data_EUR_denom)
-
-# Save the merged data to a CSV file
-setwd(Clearblue_Data)
-# Final Data Set
-write.csv(merged_data, "Clearblue_data.csv")
-write.csv(merged_data_EUR_denom, "Clearblue_data.csv", row.names = FALSE)
+write.csv(merged_data_trimmed, "Clearblue_market_data.csv")
 
 # Publish both data sets to Git
 setwd(Git)
 # Final Data Set
-write.csv(merged_data_EUR_denom, "Clearblue_data.csv")
+write.csv(merged_data_trimmed, "Clearblue_market_data.csv")
 # Final HTML file
-htmlwidgets::saveWidget(final_plot_EUR, "Clearblue_EUR_Price_Plot.html")
+htmlwidgets::saveWidget(p, "Clearblue_Allowance_Price_Plot.html")
+#---------------------------------------
+
+# stop the script
+stop()

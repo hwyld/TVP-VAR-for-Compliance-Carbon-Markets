@@ -107,7 +107,7 @@ plot_all_columns <- function(data) {
 p <- plot_all_columns(secondary_market_data_trimmed)
 
 # Save the plot
-htmlwidgets::saveWidget(p, "Allowance_Price_Plot.html")
+htmlwidgets::saveWidget(p, "ICAP_Allowance_Price_Plot.html")
 
 #---------------------------------------
 
@@ -121,7 +121,7 @@ setwd(Git)
 # Final Data Set
 write.csv(secondary_market_data_trimmed, "ICAP_secondary_market_data.csv")
 # Final HTML file
-htmlwidgets::saveWidget(p, "Allowance_Price_Plot.html")
+htmlwidgets::saveWidget(p, "ICAP_Allowance_Price_Plot.html")
 #---------------------------------------
 
 # stop the script
