@@ -121,7 +121,7 @@ setwd(Git)
 # Final Data Set
 write.csv(secondary_market_data_trimmed, "ICAP_secondary_market_data.csv")
 # Final HTML file
-htmlwidgets::saveWidget(final_plot, "EUR_Allowance_Price_Plot.html")
+htmlwidgets::saveWidget(p, "Allowance_Price_Plot.html")
 #---------------------------------------
 
 # stop the script
