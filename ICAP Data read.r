@@ -12,7 +12,7 @@ rm(list = ls())
 ## Packages ##
 #----------------------------------
 # Source the package setup script
-Git <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Carbon-Markets"
+Git <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets"
 setwd(Git)
 source("Packages.R")
 
@@ -42,7 +42,7 @@ nrow(allowance_price)
 col_names <- df[2, ]
 
 # Find the indices of the column names that contain "Allowance price"
-indices <- grep("Allowance Price", col_names)
+indices <- grep("Secondary Market", col_names)
 
 # Append only the columns with "Allowance price" in the name
 for (i in indices) {
