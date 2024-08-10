@@ -72,6 +72,8 @@ exchange_rate_data <- zoo::zoo(exchange_rate_data[, -1], order.by = exchange_rat
 # Extract the currency codes from the column names of the exchange rate data
 currency_codes <- colnames(exchange_rate_data)[-1]
 
+## ICAP Data Conversion ##
+
 # Relate the column names in the ICAP data to the currency codes
 icap_currency_codes <- c("NZD", "EUR", "KRW", "GBP", "CNY", "CNY")
 
@@ -79,32 +81,101 @@ icap_currency_codes <- c("NZD", "EUR", "KRW", "GBP", "CNY", "CNY")
 icap_data_eur <- icap_data
 
 # Function to get the exchange rate for a given currency at the same date as the ICAP data
-get_exchange_rate <- function(date, currency) {
-  if (date %in% index(exchange_rate_data) && currency %in% colnames(exchange_rate_data)) {
-    rate <- as.numeric(exchange_rate_data[date, currency])
-    return(rate)
+get_exchange_rate <- function(dates, currency) {
+  if (currency %in% colnames(exchange_rate_data)) {
+    rates <- exchange_rate_data[dates, currency, drop = FALSE]
+    return(as.numeric(rates))
   } else {
-    return(NA)  # Return NA if date or currency not found
+    return(rep(NA, length(dates)))  # Return NA if currency not found
   }
 }
 
 # Convert the prices in ICAP data
+icap_data_eur <- icap_data  # Make a copy of the original data
+
+dates <- index(icap_data_eur)  # Get the dates
+
 for (i in seq_along(icap_currency_codes)) {
   currency <- icap_currency_codes[i]
   if (currency != "EUR") {  # Skip conversion if the currency is already EUR
-    # Check if the currency column exists in icap_data_eur
-    if (i <= ncol(icap_data_eur)) {
-      # Iterate over each date in the icap_data_eur zoo object
-      for (date in index(icap_data_eur)) {
-        exchange_rate <- get_exchange_rate(date, currency)
-        
-        if (!is.na(exchange_rate) && exchange_rate > 0) {
-          icap_data_eur[date, i] <- icap_data_eur[date, i] / exchange_rate
-        }
+    if (i <= ncol(icap_data_eur)) {  # Check if the column index is valid
+      exchange_rates <- get_exchange_rate(dates, currency)
+      
+      # Only divide if exchange rate is not NA and greater than 0
+      valid_indices <- !is.na(exchange_rates) & exchange_rates > 0
+      if (any(valid_indices)) {
+        icap_data_eur[valid_indices, i] <- icap_data_eur[valid_indices, i] / exchange_rates[valid_indices]
       }
     }
   }
 }
 
+# Optional: Inspect the result
+print(tail(icap_data_eur))
+print(tail(icap_data))
+
+## Clearblue Data Conversion ##
+
+# Relate the column names in the ICAP data to the currency codes
+clearblue_currency_codes <- c("AUD", "CNY", "EUR", "GBP", "NZD", "KRW", "USD", "USD")
+
+# Create a copy for EUR denominated prices
+clearblue_data_eur <- clearblue_data
+
+dates <- index(clearblue_data_eur)  # Get the dates
+
+# Get the last available date in the exchange rate data
+max_exchange_rate_date <- max(index(exchange_rate_data))
+
+for (i in seq_along(clearblue_currency_codes)) {
+  currency <- clearblue_currency_codes[i]
+  if (currency != "EUR") {  # Skip conversion if the currency is already EUR
+    if (i <= ncol(clearblue_data_eur)) {  # Check if the column index is valid
+      # Filter dates that are within the range of the exchange rate data
+      valid_dates <- dates[dates <= max_exchange_rate_date]
+      
+      # Get exchange rates only for the valid dates
+      exchange_rates <- get_exchange_rate(valid_dates, currency)
+      
+      # Only divide if exchange rate is not NA and greater than 0
+      valid_indices <- !is.na(exchange_rates) & exchange_rates > 0
+      
+      if (any(valid_indices)) {
+        # Apply the conversion only to valid dates
+        clearblue_data_eur[valid_dates[valid_indices], i] <- clearblue_data_eur[valid_dates[valid_indices], i] / exchange_rates[valid_indices]
+      }
+    }
+  }
+}
+
+# Optional: Inspect the result
+
+print(tail(clearblue_data))
+print(tail(exchange_rate_data))
+print(tail(clearblue_data_eur))
+## ISSUE WITH CONVERTING CURRENTLY
+
+## NEED TO EXTEND THE EXHCANGE RATE DATA SET, NEED TO UNDERSTAND WHY CNVERSIONS ARE STILL HAPPENING WHEN NO EXCHANGE RATE DATA IS AVAILABLE
+
 stop()
+#--------------------------------------------------------------
+
+### Export Converted Datasets as csv ###
+
+#--------------------------------------------------------------.
+
+# Extract the Date index and convert zoo objects to dataframes
+clearblue_data_eur_df <- data.frame(Date = index(clearblue_data_eur), coredata(clearblue_data_eur))
+icap_data_eur_df <- data.frame(Date = index(icap_data_eur), coredata(icap_data_eur))
+
+# Export the dataframes to CSV files
+write.csv(clearblue_data_eur_df, "clearblue_data_eur.csv", row.names = FALSE)
+write.csv(icap_data_eur_df, "icap_data_eur.csv", row.names = FALSE)
+
+# Publish both data sets to Git
+setwd(Git)
+# Final Data Set
+write.csv(clearblue_data_eur_df, "clearblue_data_eur.csv", row.names = FALSE)
+write.csv(icap_data_eur_df, "icap_data_eur.csv", row.names = FALSE)
+
 #--------------------------------------------------------------

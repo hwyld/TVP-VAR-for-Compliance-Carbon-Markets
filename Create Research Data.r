@@ -12,7 +12,7 @@ rm(list=ls())
 ## Packages ##
 #----------------------------------
 # Source the package setup script
-Git <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Carbon-Markets"
+Git <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets"
 setwd(Git)
 source("Packages.R")
 
@@ -21,11 +21,11 @@ source("Packages.R")
 #---------------------------------------
 # Read the CSV file
 #ICAP_df <- readr::read_csv("ICAP_EUR_denom_allowance_prices_trimmed.csv", locale = readr::locale(encoding = "UTF-8"))
-ICAP_df <- readr::read_csv("ICAP_Refinitiv_EUR_denom_allowance_prices_trimmed.csv", locale = readr::locale(encoding = "UTF-8")) # using Refinitiv adjusted data
-Clearblue_df <- readr::read_csv("Clearblue_data.csv", locale = readr::locale(encoding = "UTF-8"))
+Clearblue_df <- readr::read_csv("clearblue_data_eur.csv", locale = readr::locale(encoding = "UTF-8"))
+ICAP_df <- readr::read_csv("icap_data_eur.csv", locale = readr::locale(encoding = "UTF-8"))
 
 # Rename the DateTime column to Date
-Clearblue_df <- rename(Clearblue_df, Date = DateTime)
+#Clearblue_df <- rename(Clearblue_df, Date = DateTime)
 
 # Function to convert dataframe to xts, assuming the first column is the date
 convert_to_xts <- function(df, date_col_name, date_format = "%Y-%m-%d") {
@@ -51,11 +51,69 @@ convert_to_xts <- function(df, date_col_name, date_format = "%Y-%m-%d") {
 ICAP_df_xts <- convert_to_xts(ICAP_df, "Date")
 Clearblue_df_xts <- convert_to_xts(Clearblue_df, "Date")
 
-# Remove the first column of ICAP_df
-ICAP_df_xts <- ICAP_df_xts[, -1]
 
 head(ICAP_df_xts, 5)
 head(Clearblue_df_xts, 5)
+
+#---------------------------------------
+
+#### Plot the data - Allowance Price ####
+#---------------------------------------
+
+## Domestic Currency Allowance prices ##
+
+# Convert _df_xts to a dataframe with a Date column
+ICAP_df_xts_df <- data.frame(Date = index(ICAP_df_xts), coredata(ICAP_df_xts))
+Clearblue_df_xts_df <- data.frame(Date = index(Clearblue_df_xts), coredata(Clearblue_df_xts))
+
+# Create a plotly plot for all columns
+plot_all_columns <- function(data) {
+  p <- plot_ly(data, x = ~Date)
+  
+  # Iterate over each column except the Date column
+  for (col in colnames(data)[-which(colnames(data) == "Date")]) {
+    p <- add_trace(p, y = as.formula(paste0("~`", col, "`")), name = col, type = 'scatter', mode = 'lines')
+  }
+  
+  p <- layout(p, title = 'EUR denominated ICAP Data',
+              xaxis = list(title = 'Date'),
+              yaxis = list(title = 'Value'))
+  
+  return(p)
+}
+
+# Call the function to plot the data
+p <- plot_all_columns(ICAP_df_xts_df)
+
+# Save the plot
+htmlwidgets::saveWidget(p, "ICAP_Price_Plot.html")
+
+# Call the function to plot the data
+p <- plot_all_columns(Clearblue_df_xts_df)
+
+# Save the plot
+htmlwidgets::saveWidget(p, "Clearblue_Price_Plot.html")
+
+#---------------------------------------
+
+#### Merge datasets and Plot the data - Allowance Price ####
+
+#---------------------------------------
+
+# Merge the dataframes on the Date column
+Merged_df_xts_df <- merge(ICAP_df_xts_df, Clearblue_df_xts_df, by = "Date", all = TRUE)
+
+# Optionally, handle missing values (e.g., fill NA with 0)
+#Merged_df_xts_df[is.na(Merged_df_xts_df)] <- 0
+
+# Print the first few rows of the merged dataframe
+print(head(Merged_df_xts_df))
+
+# Call the function to plot the data
+p <- plot_all_columns(Merged_df_xts_df)
+
+# Save the plot
+htmlwidgets::saveWidget(p, "Merged_Price_Plot.html")
 
 #---------------------------------------
 
@@ -139,10 +197,17 @@ stargazer(valid_date_info_Clearblue_df,
 #---------------------------------------
 
 ####### Create the Research Data #######
-# EU ETS based on ICAP : EUR_EUR 
-# NZ ETS based on ICAP : NZ_EUR 
-# CCA ETS based on Clearblue : CCA...Front.December...ICE
-# Hubei ETS based on ICAP : Hubei_EUR 
+# Key dates:
+  # Jan 2010, start of NZU and EUA time series
+  # Apr 2014, start of HBEA time series
+  # Jan 2015, start of KAU and CCA time series
+  # Jan 2018, start of ACCU time series
+  # May 2021, start of UKA time series
+  # Jul 2021, start of CEA time series
+  # Dec 2022, start of WCA time series
+
+# Rolling 3 year windows?
+
 #---------------------------------------
 # Create the Dataframe by merging the ICAP and Clearblue dataframes
 df <- merge(ICAP_df_xts, Clearblue_df_xts, by = "Date")
