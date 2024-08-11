@@ -114,6 +114,48 @@ for (i in seq_along(icap_currency_codes)) {
 print(tail(icap_data_eur))
 print(tail(icap_data))
 
+# Sample from 30/11/2023 to 31/12/2023 from both datasets
+#--------------------------------------------------------
+# Define the date range
+start_date <- as.Date("2023-11-30")
+end_date <- as.Date("2023-12-31")
+
+# Extract dates from the zoo objects
+dates_icap <- index(icap_data)
+dates_icap_eur <- index(icap_data_eur)
+
+# Filter icap_data for the specified date range using logical indexing
+filtered_icap_data <- icap_data[dates_icap >= start_date & dates_icap <= end_date]
+
+# Filter icap_data_eur for the specified date range using logical indexing
+filtered_icap_data_eur <- icap_data_eur[dates_icap_eur >= start_date & dates_icap_eur <= end_date]
+
+# Convert filtered zoo objects to data frames
+filtered_icap_data_df <- data.frame(Date = index(filtered_icap_data), coredata(filtered_icap_data))
+filtered_icap_data_eur_df <- data.frame(Date = index(filtered_icap_data_eur), coredata(filtered_icap_data_eur))
+
+# Print the filtered data to compare
+print("Filtered icap_data:")
+print(filtered_icap_data_df)
+
+print("Filtered icap_data_eur:")
+print(filtered_icap_data_eur_df)
+
+colnames(filtered_icap_data_eur_df)
+
+# Optionally, you can also compare specific columns to see if the conversion has worked
+# For example, if you want to compare a column named 'NZU'
+icap_comparison <- data.frame(
+  Date = filtered_icap_data_df$Date,
+  Original_Value = filtered_icap_data_df$New.Zealand.Emissions.Trading.System,
+  Converted_Value = filtered_icap_data_eur_df$New.Zealand.Emissions.Trading.System
+)
+
+print("Comparison of Original and Converted Values:")
+print(icap_comparison)
+#--------------------------------------------------------
+
+
 ## Clearblue Data Conversion ##
 
 # Relate the column names in the ICAP data to the currency codes
@@ -153,11 +195,55 @@ for (i in seq_along(clearblue_currency_codes)) {
 print(tail(clearblue_data))
 print(tail(exchange_rate_data))
 print(tail(clearblue_data_eur))
-## ISSUE WITH CONVERTING CURRENTLY
+
+# Sample from 30/11/2023 to 31/12/2023 from both datasets
+#--------------------------------------------------------
+# Define the date range
+start_date <- as.Date("2023-11-30")
+end_date <- as.Date("2023-12-31")
+
+# Extract dates from the zoo objects
+dates_clearblue <- index(clearblue_data)
+dates_clearblue_eur <- index(clearblue_data_eur)
+
+# Filter clearblue_data for the specified date range using logical indexing
+filtered_clearblue_data <- clearblue_data[dates_clearblue >= start_date & dates_clearblue <= end_date]
+
+# Filter clearblue_data_eur for the specified date range using logical indexing
+filtered_clearblue_data_eur <- clearblue_data_eur[dates_clearblue_eur >= start_date & dates_clearblue_eur <= end_date]
+
+# Convert filtered zoo objects to data frames
+filtered_clearblue_data_df <- data.frame(Date = index(filtered_clearblue_data), coredata(filtered_clearblue_data))
+filtered_clearblue_data_eur_df <- data.frame(Date = index(filtered_clearblue_data_eur), coredata(filtered_clearblue_data_eur))
+
+# Print the filtered data to compare
+print("Filtered clearblue_data:")
+print(filtered_clearblue_data_df)
+
+print("Filtered clearblue_data_eur:")
+print(filtered_clearblue_data_eur_df)
+
+# Optionally, you can also compare specific columns to see if the conversion has worked
+# For example, if you want to compare a column named 'NZU'
+comparison <- data.frame(
+  Date = filtered_clearblue_data_df$Date,
+  Original_Value = filtered_clearblue_data_df$NZU,
+  Converted_Value = filtered_clearblue_data_eur_df$NZU
+)
+
+icap_cleablue_comparison <- data.frame(
+  Date = filtered_clearblue_data_df$Date,
+  ICAP = filtered_icap_data_eur_df$New.Zealand.Emissions.Trading.System,
+  Clearblue = filtered_clearblue_data_eur_df$NZU
+)
+
+print("Comparison of Original and Converted Values:")
+print(comparison)
+#--------------------------------------------------------
+
 
 ## NEED TO EXTEND THE EXHCANGE RATE DATA SET, NEED TO UNDERSTAND WHY CNVERSIONS ARE STILL HAPPENING WHEN NO EXCHANGE RATE DATA IS AVAILABLE
 
-stop()
 #--------------------------------------------------------------
 
 ### Export Converted Datasets as csv ###
@@ -167,6 +253,12 @@ stop()
 # Extract the Date index and convert zoo objects to dataframes
 clearblue_data_eur_df <- data.frame(Date = index(clearblue_data_eur), coredata(clearblue_data_eur))
 icap_data_eur_df <- data.frame(Date = index(icap_data_eur), coredata(icap_data_eur))
+
+#### REMOVE ONCE EXCHANGE RATE DATA IS EXTENDED
+# Trim data to end at 09 May 2024 when exchange rate data ends
+end_date <- as.Date("2024-05-09")
+clearblue_data_eur_df <- clearblue_data_eur_df[clearblue_data_eur_df$Date <= end_date, ]
+icap_data_eur_df <- icap_data_eur_df[icap_data_eur_df$Date <= end_date, ]
 
 # Export the dataframes to CSV files
 write.csv(clearblue_data_eur_df, "clearblue_data_eur.csv", row.names = FALSE)

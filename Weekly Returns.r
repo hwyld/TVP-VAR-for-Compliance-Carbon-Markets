@@ -12,7 +12,7 @@ rm(list=ls())
 ## Packages ##
 #----------------------------------
 # Source the package setup script
-Git <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Carbon-Markets"
+Git <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets"
 setwd(Git)
 source("Packages.R")
 
@@ -215,8 +215,8 @@ volatility <- xts(volatility, order.by = first_day_of_week)
 #---------------------------------------
 # Trim the data to only include the dates from 2014-04-30 to 2021-12-01 (inclusive)
 # Wednesday 30th April 2014 to Wednesday 1st December 2021
-Research_Data_weekly_returns <- weekly_returns["2014-04-30/2021-12-08"]
-Research_Data_weekly_volatility <- volatility["2014-04-30/2021-12-08"]
+#Research_Data_weekly_returns <- weekly_returns["2014-04-30/2021-12-08"]
+#Research_Data_weekly_volatility <- volatility["2014-04-30/2021-12-08"]
 
 last(Research_Data_weekly_returns, 5)
 last(Research_Data_weekly_volatility, 5)
@@ -243,10 +243,10 @@ nrow(Research_Data_weekly_returns)
 nrow(Research_Data_weekly_volatility)
 
 # Change Column Names to match the paper; EU ETS, NZ ETS, CA CaT, HB ETS
-colnames(Research_Data_weekly_returns) <- c("EU ETS", "NZ ETS", "CA CaT", "HB ETS")
+#colnames(Research_Data_weekly_returns) <- c("EU ETS", "NZ ETS", "CA CaT", "HB ETS")
 
 # Rename the Column Names from Research_Data_weekly_volatility to match Research_Data_weekly_returns
-colnames(Research_Data_weekly_volatility) <- colnames(Research_Data_weekly_returns)
+#colnames(Research_Data_weekly_volatility) <- colnames(Research_Data_weekly_returns)
 
 # Convert both datasets as xts objects using the index from the row names
 Research_Data_weekly_returns <- xts(Research_Data_weekly_returns, order.by = as.Date(rownames(Research_Data_weekly_returns)))

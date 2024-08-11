@@ -75,7 +75,7 @@ plot_all_columns <- function(data) {
     p <- add_trace(p, y = as.formula(paste0("~`", col, "`")), name = col, type = 'scatter', mode = 'lines')
   }
   
-  p <- layout(p, title = 'EUR denominated ICAP Data',
+  p <- layout(p, title = 'EUR denominated Price Data',
               xaxis = list(title = 'Date'),
               yaxis = list(title = 'Value'))
   
@@ -137,28 +137,20 @@ safe_describe <- function(x) {
   if (length(non_na_values) == 0) {
     return(list(Count = NA, Mean = NA, SD = NA))  # Return NA for stats if no data
   } else {
-    return(describe(non_na_values))
+    desc <- describe(non_na_values)
+    # Ensure the returned list has consistent names
+    return(list(Count = desc$n, Mean = desc$mean, SD = desc$sd))
   }
 }
 
 # Apply the function to each column
-summary_stats_ICAP <- sapply(ICAP_df_xts, safe_describe)
-summary_stats_Clearblue <- sapply(Clearblue_df_xts, safe_describe)
+summary_stats_ICAP <- sapply(ICAP_df_xts, safe_describe, simplify = FALSE)
+summary_stats_Clearblue <- sapply(Clearblue_df_xts, safe_describe, simplify = FALSE)
 
-## Display the Summary Statistics
 # Convert summary statistics to a data frame
 summary_stats_to_df <- function(stats) {
-  stats_df <- do.call(rbind, stats)
-  stats_df <- as.data.frame(stats_df)
+  stats_df <- do.call(rbind, lapply(stats, function(x) as.data.frame(t(x))))
   return(stats_df)
-}
-
-# Convert valid date information to a data frame
-dates_to_df <- function(dates) {
-  dates_df <- t(dates)
-  dates_df <- as.data.frame(dates_df)
-  names(dates_df) <- c("Start", "End")
-  return(dates_df)
 }
 
 # Convert your summary statistics arrays to data frames
@@ -169,30 +161,33 @@ summary_stats_Clearblue_df <- summary_stats_to_df(summary_stats_Clearblue)
 valid_date_info_ICAP_df <- dates_to_df(valid_date_info_ICAP)
 valid_date_info_Clearblue_df <- dates_to_df(valid_date_info_Clearblue)
 
-# Export the Tables with stargazer to HTML
-stargazer(summary_stats_ICAP_df, 
-          type = "html", 
-          digits=3, align=TRUE,
-          intercept.bottom=FALSE,
-          title = "Summary Statistics for ICAP Dataset",
-          out= "Summary Statistics for ICAP Dataset.html")
+# Combine summary stats with the corresponding date info
+ICAP_combined_df <- cbind(valid_date_info_ICAP_df, summary_stats_ICAP_df)
+Clearblue_combined_df <- cbind(valid_date_info_Clearblue_df, summary_stats_Clearblue_df)
 
-stargazer(summary_stats_Clearblue_df, 
-          type = "html", 
-          digits=3, align=TRUE,
-          intercept.bottom=FALSE,
-          title = "Summary Statistics for Clearblue Dataset",
-          out= "Summary Statistics for Clearblue Dataset.html")
+# Merge the combined data frames and order by oldest start date
+merged_dates <- rbind(ICAP_combined_df, Clearblue_combined_df)
+merged_dates <- merged_dates[order(as.Date(merged_dates$Start, "%Y-%m-%d")), ]
 
-stargazer(valid_date_info_ICAP_df, 
-          type = "html", 
-          title = "Start and End Dates for ICAP Dataset",
-          out= "Dates for ICAP Dataset.html")
+# Display the merged and ordered data frame
+print(merged_dates)
 
-stargazer(valid_date_info_Clearblue_df, 
-          type = "html", 
-          title = "Start and End Dates for Clearblue Dataset",
-          out= "Dates for Clearblue Dataset.html")
+# Export as table in html format
+html_table <- kable(merged_dates, format = "html", escape = FALSE) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), 
+                full_width = FALSE, 
+                position = "center") %>%
+  column_spec(1, bold = TRUE) %>%  # Bold the row names
+  row_spec(0, bold = TRUE) %>%     # Bold the column names
+  kable_styling(latex_options = "hold_position", 
+                position = "center", 
+                stripe_color = "gray!15", 
+                stripe_index = seq(1, nrow(merged_dates), 2)) %>%
+  add_header_above(c(" " = 1, "Summary Statistics" = ncol(merged_dates) - 1)) %>%
+  kable_styling(latex_options = c("striped", "hold_position"))
+
+# Save the HTML table to a file
+writeLines(html_table, "Summary_Statistics.html")
 
 #---------------------------------------
 
@@ -209,19 +204,42 @@ stargazer(valid_date_info_Clearblue_df,
 # Rolling 3 year windows?
 
 #---------------------------------------
-# Create the Dataframe by merging the ICAP and Clearblue dataframes
-df <- merge(ICAP_df_xts, Clearblue_df_xts, by = "Date")
-colnames(df)
 
-# Keep the following columns
+# Remove CEA, EUA, NZU, KAU from merged dataset
+# Find the column numbers corresponding to the specified column names
+columns_to_remove <- which(colnames(Merged_df_xts_df) %in% c("United.Kingdom.Emissions.Trading.Scheme", "CEA", "EUA", "NZU", "KAU"))
 
-Research_Data <- df[, c("EUR_EUR", "NZ_EUR", "CCA...Front.December...ICE", "Hubei_EUR")]
+# Remove the columns by their indices
+Research_Data <- Merged_df_xts_df[, -columns_to_remove]
 
-head(df, 5)
-head(Research_Data, 5)
+# Check the remaining column names
+colnames(Research_Data)
+
+# Print the first few rows of the updated dataframe
+print(head(Research_Data))
+
+length(colnames(Research_Data))
+
+# Define new column names
+new_column_names <- c("Date", "NZU", "EUA", "KAU", "CEA", "HBEA", "ACCU", "UKA", "WCA", "CCA")
+
+length(new_column_names)
+
+# Rename columns of Merged_df_xts_df
+colnames(Research_Data) <- new_column_names
+
+# Print the first few rows of the updated dataframe
+print(head(Research_Data))
 
 # Upload Research Data to global environment
 assign("Research_Data", Research_Data, envir = .GlobalEnv)
+
+# plot the data
+# Call the function to plot the data
+p <- plot_all_columns(Research_Data)
+
+# Save the plot
+htmlwidgets::saveWidget(p, "Research_Data_Price_Plot.html")
 
 #---------------------------------------
 
@@ -231,121 +249,60 @@ assign("Research_Data", Research_Data, envir = .GlobalEnv)
 ## Forward Fill NA values ##
 #---------------------------------------
 # Summarize NA presence in Research_Data
-summary(is.na(Research_Data))
-
-# Forward fill NA values (carry forward the last known value)
-Research_Data_ffill <- na.locf(Research_Data)
-
-summary(is.na(Research_Data_ffill))
-
-# plot both the original and forward filled data on the same plot
-# Convert xts objects to data frames, capturing Date indices
-Research_Data_df <- data.frame(Date = index(Research_Data), coredata(Research_Data))
-Research_Data_ffill_df <- data.frame(Date = index(Research_Data_ffill), coredata(Research_Data_ffill))
-
-# Add a 'Type' column to distinguish between original and forward-filled data
-Research_Data_df$Type <- "Original"
-Research_Data_ffill_df$Type <- "Forward-Filled"
-
-# Combine the data frames
-combined_df <- rbind(Research_Data_df, Research_Data_ffill_df)
-
-# Remove non-trading days
-combined_df <- combined_df[!duplicated(combined_df$Date), ]
-
-# Melt the data for plotting (if using ggplot2 and the data is wide)
-
-combined_df_long <- melt(combined_df, id.vars = c("Date", "Type"), variable.name = "Variable", value.name = "Price")
-
-# Plot using ggplot2
-a <- ggplot(combined_df_long, aes(x = Date, y = Price, color = Type, linetype = Type)) +
-    geom_line() +
-    facet_wrap(~ Variable, scales = "free_y") +  # Ensures each variable has its own y scale
-    labs(title = "Comparison of Original vs Forward-Filled Data", x = "Date", y = "Price") +
-    scale_color_manual(values = c("Original" = "blue", "Forward-Filled" = "red")) +
-    theme_minimal()
-
-# Convert to Plotly object
-p <- ggplotly(a)
-
-# Optionally, display the plot in an interactive viewer if running locally
-#print(p)
-
-# Add range selector buttons, source annotation, and apply onRender with custom JavaScript
-final_plot <- p %>% layout(
-  xaxis = list(
-    type = "date",
-    rangeselector = list(
-      buttons = list(
-        list(count = 6, label = "6m", step = "month", stepmode = "backward"),
-        list(count = 1, label = "1y", step = "year", stepmode = "backward"),
-        list(count = 5, label = "5y", step = "year", stepmode = "backward"),
-        list(step = "all", label = "All")
-      )
-    ),
-    rangeslider = list(visible = TRUE)
-  ),
-  annotations = list(
-    list(
-      text = "Source: Clearblue",
-      x = 0.01, # Position on the x-axis
-      xref = "paper", # Relative to the entire width of the plot
-      y = -0.2, # Position on the y-axis
-      yref = "paper", # Relative to the entire height of the plot
-      showarrow = FALSE, # No arrow pointing
-      xanchor = "left",
-      yanchor = "top",
-      font = list(
-        family = "Arial",
-        size = 12,
-        color = "grey"
-      )
-    )
-  )
-)
-
-# Save plot as a PNG file
-#ggsave("Forward_Filled_Data_Plot.png", bg = "white")
-
-## Subset into individual vectors ##
-# Define the function
-subsetAndCleanNA <- function(data) {
-  if (!inherits(data, c("data.frame", "xts"))) {
-    stop("The data must be a data frame or an xts object.")
-  }
-  
-  cleaned_data_list <- list()
-  num_columns <- ncol(data)
-  
-  for (i in 1:num_columns) {
-    column_data <- data[, i, drop = FALSE]
-    clean_column_data <- column_data[complete.cases(column_data), , drop = FALSE]
-    cleaned_data_list[[names(data)[i]]] <- clean_column_data
-  }
-  
-  return(cleaned_data_list)
-}
-
-# Assuming 'Research_Data_ffill' is an xts object that has been forward-filled
-cleaned_datasets <- subsetAndCleanNA(Research_Data_ffill)
-lapply(cleaned_datasets, head)  # Display the head of each dataset in the list
-
-# Turn the list into a data frame and ensure the dates are kept
-cleaned_datasets <- do.call(cbind, cleaned_datasets)
-cleaned_datasets <- data.frame(Date = index(cleaned_datasets), coredata(cleaned_datasets))
-
-# Remove col1
-#cleaned_datasets <- cleaned_datasets[, -1]
-
-# Rename to EUA, NZU, CCA, HBEA
-colnames(cleaned_datasets) <- c("Date","EUA", "NZU", "CCA", "HBEA") 
 
 #---------------------------------------
+
+####### Summary Stats on Research Data #######
+
+#---------------------------------------
+
+# Use Research_data_df to create xts objects
+Research_Data_xts <- convert_to_xts(Research_Data, "Date")
+
+# Apply the function to each column
+valid_date_info_Research_data <- sapply(Research_Data_xts, get_valid_dates)
+
+# Check for NA-only columns and apply describe safely
+safe_describe <- function(x) {
+  non_na_values <- x[!is.na(x)]
+  if (length(non_na_values) == 0) {
+    return(list(Count = NA, Mean = NA, SD = NA))  # Return NA for stats if no data
+  } else {
+    desc <- describe(non_na_values)
+    # Ensure the returned list has consistent names
+    return(list(Count = desc$n, Mean = desc$mean, SD = desc$sd))
+  }
+}
+
+# Apply the function to each column
+summary_stats_Research_data <- sapply(Research_Data_xts, safe_describe, simplify = FALSE)
+
+# Convert your summary statistics arrays to data frames
+summary_stats_Research_data_df <- summary_stats_to_df(summary_stats_Research_data)
+
+# Convert date info arrays to data frames
+valid_date_info_Research_data_df <- dates_to_df(valid_date_info_Research_data)
+
+# Combine summary stats with the corresponding date info
+Research_data_combined_df <- cbind(valid_date_info_Research_data_df, summary_stats_Research_data_df)
+
+# Merge the combined data frames and order by oldest start date
+merged_dates <- merged_dates[order(as.Date(Research_data_combined_df$Start, "%Y-%m-%d")), ]
+
+# Display the merged and ordered data frame
+print(merged_dates)
+
+# Save the HTML table to a file
+html_table <- kable(merged_dates, format = "html", escape = FALSE)
+
+# Save the HTML table to a file
+writeLines(html_table, "Summary_Statistics_Research_Data.html")
+
 
 # Export to Git
 #---------------------------------------
 # Publish both data sets to Git
 setwd(Git)
 # Final Data Set
-write.csv(cleaned_datasets, "Research_data.csv")
+write.csv(Research_Data, "Research_data.csv")
 #---------------------------------------
