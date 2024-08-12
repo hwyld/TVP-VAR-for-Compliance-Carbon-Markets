@@ -58,7 +58,8 @@ load_packages <- function(update = FALSE) {
     purrr = "functional programming in R",
     urca = "unit root and cointegration tests in R",
     psych = "psychological research in R",
-    flextable = "create tables in R"
+    flextable = "create tables in R",
+    moments = "statistical moments in R"
   )
 
   # Update all packages if specified
