@@ -37,28 +37,16 @@ vol_zoo <- zoo(vol_df[, -1], order.by = as.Date(vol_df$Date))
 # If there are any NAs or infinite values,  removing or imputing them
 #return_zoo <- na.omit(return_zoo)  # Removes entire rows where any NA values are present
 
-# Alternatively, impute NAs - example using simple mean imputation (customize as needed)
-na_fill_values <- sapply(return_zoo, function(column) mean(column, na.rm = TRUE))
-return_zoo <- na.approx(return_zoo, rule = 2)  # Linear interpolation
-return_zoo <- na.fill(return_zoo, na_fill_values)  # Filling remaining NAs with column means
+# Adapt any remaining NAs or infinite values to 0 in the data
+return_zoo <- na.fill(return_zoo, fill = 0)
 
-# Alternatively, impute NAs - example using simple mean imputation (customize as needed)
-na_fill_values <- sapply(vol_zoo, function(column) mean(column, na.rm = TRUE))
-vol_zoo <- na.approx(vol_zoo, rule = 2)  # Linear interpolation
-vol_zoo <- na.fill(vol_zoo, na_fill_values)  # Filling remaining NAs with column means
+# Replace infinite values with 0
+return_zoo[is.infinite(return_zoo)] <- 0
 
 ## Ensure there are no NAs or infinite values ##
 summary(return_zoo)
 any(is.na(return_zoo))
 any(is.infinite(return_zoo))
-
-## Ensure there are no NAs or infinite values ##
-summary(vol_zoo)
-any(is.na(vol_zoo))
-any(is.infinite(vol_zoo))
-
-colnames(return_zoo) <- c("EU ETS", "NZ ETS", "CA CaT", "HB ETS")
-colnames(vol_zoo) <- c("EU ETS", "NZ ETS", "CA CaT", "HB ETS")
 
 #----------------------------------
 
@@ -97,7 +85,7 @@ decay_factor <- 0.96
 dca = ConnectednessApproach(return_zoo, 
                             nlag=lag_order, 
                             nfore=H,
-                            window.size=200,
+                            window.size=300,
                             model="TVP-VAR",
                             connectedness="Time",
                             VAR_config=list(TVPVAR=list(kappa1=forgetting_factor, kappa2=decay_factor, prior="BayesPrior"))) # TVP-VAR model with forgetting factor and decay factor as specified
@@ -148,7 +136,7 @@ par(mar=c(5, 5.5, 4, 2) + 0.1)  # Increased left margin
 # Plot TCI data with adjusted limits and margins
 PlotTCI(dca, 
         ca = NULL,
-        ylim = c(0, 50))
+        ylim = c(-100, 100))
 
 # Add titles and axis labels with adjusted positions
 #title("Total Connectedness Index (TCI) - Returns", line = 2.5, cex.main = 1.5)
@@ -171,7 +159,7 @@ pdf("TO_returns.pdf", width = 8, height = 6)  # Size in inches (default)
 # Set larger margins (bottom, left, top, right) to avoid clipping of titles/labels
 par(mar=c(10, 4.5, 5, 2) + 0.1)  # Adjust these numbers as needed
 
-PlotTO(dca, ylim = c(0, 60))
+PlotTO(dca, ylim = c(-100, 100))
 
 # Add titles and axis labels with adjusted positions
 #title("'TO' Others - Returns", line = 2.5, cex.main = 1.5, col.main = "black", font.main = 2)
