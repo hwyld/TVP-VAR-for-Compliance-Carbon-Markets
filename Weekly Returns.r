@@ -54,11 +54,13 @@ print(tail(cleaned_datasets_xts))
 # Define the function to calculate weekly returns from Friday-to-Friday.
 # The function assumes the data is already in xts format.
 calculate_weekly_returns <- function(data) {
-  aligned_data <- apply.weekly(data, FUN = last)
+  # Ensure that the 'data' is an xts object and has a proper Date index 
+  # Align data to Friday to Friday returns only
+  fridays <- which(format(index(data), "%A") == "Friday")
+  aligned_data <- data[fridays]
   returns <- diff(log(aligned_data))
   return(na.omit(returns))
 }
-
 # Initialize the weekly returns list with proper names
 weekly_returns_list <- setNames(vector("list", ncol(cleaned_datasets_xts)), colnames(cleaned_datasets_xts))
 
@@ -70,6 +72,7 @@ for (i in seq_along(weekly_returns_list)) {
 # Combine the weekly returns into a single xts object
 weekly_returns <- do.call(merge, weekly_returns_list)
 print(head(weekly_returns))
+
 
 #---------------------------------------
 
@@ -226,6 +229,10 @@ volatility <- xts(volatility, order.by = first_day_of_week)
 Research_Data_weekly_returns <- weekly_returns["2010-01-05/2024-01-02"]
 Research_Data_weekly_volatility <- volatility["2010-01-05/2024-01-02"]
 
+# Save the Date indexes for later use
+Research_Data_weekly_returns_dates <- index(Research_Data_weekly_returns)
+Research_Data_weekly_volatility_dates <- index(Research_Data_weekly_volatility)
+
 # Rename column names for Research_Data_weekly_volatility to match Research_Data_weekly_returns
 colnames(Research_Data_weekly_volatility) <- colnames(Research_Data_weekly_returns)
 
@@ -242,6 +249,7 @@ sum(is.na(Research_Data_weekly_returns))
 sum(is.na(Research_Data_weekly_volatility))
 
 # Function to calculate NA counts, non-NA counts, total data points, and first non-NA date with debugging
+
 calculate_na_stats <- function(df) {
   na_counts <- colSums(is.na(df))
   non_na_counts <- colSums(!is.na(df))
@@ -250,11 +258,14 @@ calculate_na_stats <- function(df) {
   first_non_na_date <- sapply(df, function(column) {
     non_na_indices <- which(!is.na(column))
     if (length(non_na_indices) > 0) {
-      return(rownames(df)[non_na_indices[1]])
+      return(index(df)[non_na_indices[1]])
     } else {
       return(NA)
     }
   })
+  
+  # Convert numeric date format to original date format
+  first_non_na_date <- as.Date(first_non_na_date, origin = "1970-01-01")
   
   # Ensure that all vectors have the same length
   if (length(na_counts) == length(non_na_counts) && length(non_na_counts) == length(total_counts) && length(total_counts) == length(first_non_na_date)) {
@@ -271,7 +282,6 @@ calculate_na_stats <- function(df) {
   
   return(stats_df)
 }
-
 
 # Calculate stats for Research_Data_weekly_returns
 returns_stats <- calculate_na_stats(Research_Data_weekly_returns)
@@ -366,6 +376,14 @@ calculate_descriptive_stats <- function(series) {
 summary_stats_returns <- apply(Research_Data_weekly_returns, 2, calculate_descriptive_stats)
 summary_stats_volatility <- apply(Research_Data_weekly_volatility, 2, calculate_descriptive_stats)
 
+# Add first non-NA date to the summary statistics
+summary_stats_returns <- rbind(summary_stats_returns, returns_stats$First_Non_NA_Date)
+summary_stats_volatility <- rbind(summary_stats_volatility, volatility_stats$First_Non_NA_Date)
+
+# Add row name for the first non-NA date
+rownames(summary_stats_returns)[nrow(summary_stats_returns)] <- "Start Date"
+rownames(summary_stats_volatility)[nrow(summary_stats_volatility)] <- "Start Date"
+
 # Transpose to match required format
 summary_stats_returns <- t(summary_stats_returns)
 summary_stats_volatility <- t(summary_stats_volatility)
@@ -374,9 +392,13 @@ summary_stats_volatility <- t(summary_stats_volatility)
 summary_stats_returns_df <- as.data.frame(summary_stats_returns)
 summary_stats_volatility_df <- as.data.frame(summary_stats_volatility)
 
+# Convert the "Start Date" column to date format
+summary_stats_returns_df$`Start Date` <- as.Date(summary_stats_returns_df$`Start Date`, origin = "1970-01-01")
+summary_stats_volatility_df$`Start Date` <- as.Date(summary_stats_volatility_df$`Start Date`, origin = "1970-01-01")
+
 # Set the column names
-colnames(summary_stats_returns_df) <- c("Mean", "Min", "Max", "St.dev.", "Skew.", "Kurt.", "ADF")
-colnames(summary_stats_volatility_df) <- c("Mean", "Min", "Max", "St.dev.", "Skew.", "Kurt.", "ADF")
+colnames(summary_stats_returns_df) <- c("Mean", "Min", "Max", "St.dev.", "Skew.", "Kurt.", "ADF", "Start Date")
+colnames(summary_stats_volatility_df) <- c("Mean", "Min", "Max", "St.dev.", "Skew.", "Kurt.", "ADF", "Start Date")
 
 # Print the results
 print("Descriptive Statistics for Weekly Returns:")
@@ -385,15 +407,13 @@ print(summary_stats_returns_df)
 print("Descriptive Statistics for Weekly Volatility:")
 print(summary_stats_volatility_df)
 
-# Save as data frames
-summary_stats_returns <- as.data.frame(summary_stats_returns)
-summary_stats_volatility <- as.data.frame(summary_stats_volatility)
+# Order by oldest start date
+summary_stats_returns_df <- summary_stats_returns_df[order(summary_stats_returns_df$`Start Date`), ]
+summary_stats_volatility_df <- summary_stats_volatility_df[order(summary_stats_volatility_df$`Start Date`), ]
 
 # transpose the data frames
-summary_stats_returns <- t(t(summary_stats_returns))
-summary_stats_volatility <- t(t(summary_stats_volatility))
-comparison_means_returns <- t(t(comparison_means_returns))
-comparison_means_volatility <- t(t(comparison_means_volatility))
+summary_stats_returns <- t(t(summary_stats_returns_df))
+summary_stats_volatility <- t(t(summary_stats_volatility_df))
 
 ## Export the tables to HTML
 stargazer(summary_stats_returns, 
@@ -414,83 +434,119 @@ stargazer(summary_stats_volatility,
 #---------------------------------------
 
 ### Plot the data ###
+## Weekly Returns ##
 #---------------------------------------
 # Load necessary libraries
-library(ggplot2)
-library(reshape2)
-library(plotly)
+# Plot the weekly returns as 4 separate charts for each series but merge them into one file
+# Convert xts objects to data frames, capturing Date indices
+Research_Data_continuously_compounded_weekly_returns <- data.frame(Date = Research_Data_weekly_returns_dates, coredata(Research_Data_weekly_returns))
 
-# Function to create and save plots for both weekly returns and volatility
-create_and_save_plots <- function(data_long, title, y_label, color_mapping, filename) {
-  plot <- ggplot(data_long, aes(x = Date, y = value, color = Series)) +
-    geom_line(size = 0.7) +
-    facet_wrap(~ Series, scales = "free_y", ncol = 2) +  # Create a 2 by 2 grid
-    labs(title = title, x = "Date", y = y_label) +
-    scale_color_manual(values = color_mapping) +
-    scale_x_date(date_breaks = "1 year", date_labels = "%Y") +  # Set x-axis to show yearly ticks
-    theme_minimal() +
-    theme(
-      legend.position = "none",
-      panel.grid = element_blank(),  # Remove grid lines
-      axis.title = element_text(size = 16),  # Increase size of axis titles
-      axis.text = element_text(size = 14),  # Increase size of axis labels
-      strip.text = element_text(size = 16, face = "bold", hjust = 0),  # Left-align series labels
-      axis.line.x.bottom = element_line(color = "black", size = 0.5),  # Add x-axis line
-      axis.line.y.left = element_line(color = "black", size = 0.5),  # Add y-axis line
-      axis.ticks = element_line(color = "black", size = 0.5),  # Add axis ticks
-      axis.ticks.length = unit(0.2, "cm")  # Length of the ticks
-    )
-  
-  # Save plots together in one file
-  ggsave(filename, plot = plot, width = 12, height = 8, bg = "white")
-  
-  # Convert the ggplot object to a plotly object for interactivity
-  return(plotly::ggplotly(plot))
-}
+# Match Column Names to the paper
+colnames(Research_Data_continuously_compounded_weekly_returns) <- c('Date',colnames(Research_Data_weekly_returns))
 
-# Convert xts objects to long data frames for plotting
-Research_Data_weekly_returns_long <- melt(
-  data.frame(Date = index(Research_Data_weekly_returns), coredata(Research_Data_weekly_returns)),
-  id.vars = "Date", variable.name = "Series", value.name = "Weekly_Return"
-)
-Research_Data_weekly_volatility_long <- melt(
-  data.frame(Date = index(Research_Data_weekly_volatility), coredata(Research_Data_weekly_volatility)),
-  id.vars = "Date", variable.name = "Series", value.name = "Weekly_Volatility"
-)
+# Melt the data for plotting (if using ggplot2 and the data is wide)
+Research_Data_continuously_compounded_weekly_returns_long <- melt(Research_Data_continuously_compounded_weekly_returns, id.vars = "Date", variable.name = "Series", value.name = "Weekly_Return")
 
-# Function to generate a color palette
-generate_colors <- function(n) {
-  colors <- grDevices::rainbow(n)
-  return(colors)
-}
+# Create 4 separate plots for each series and save them in the save file as a 2 by 2 grid
+# Plot the weekly returns for each series
+a <- ggplot(Research_Data_continuously_compounded_weekly_returns_long, aes(x = Date)) +
+  geom_line(aes(y = Weekly_Return, color = Series)) +
+  labs(title = "Weekly Returns",
+       x = "Date",
+       y = "Volatility") +
+  scale_color_manual(values = c("EUA" = "blue", "NZU" = "red", "CCA" = "green", "HBEA" = "purple")) +
+  facet_wrap(~ Series, scales = "free_y") +  # Create a separate plot for each series
+  theme_minimal()
 
-# Generate color mappings for Research_Data_weekly_returns
-columns_returns <- colnames(Research_Data_weekly_returns)
-colors_returns <- generate_colors(length(columns_returns))
-color_mapping_returns <- setNames(colors_returns, columns_returns)
 
-# Generate color mappings for Research_Data_weekly_volatility
-columns_volatility <- colnames(Research_Data_weekly_volatility)
-colors_volatility <- generate_colors(length(columns_volatility))
-color_mapping_volatility <- setNames(colors_volatility, columns_volatility)
+# Save plots together in one file
+#ggsave("Weekly_Returns_Plot.png", bg = "white")  
 
-# Print the color mappings
-print(color_mapping_returns)
-print(color_mapping_volatility)
+# Convert the ggplot object to a plotly object
+plotly::ggplotly(a)
 
-# Create and save the plots
-plot_returns <- create_and_save_plots(
-  Research_Data_weekly_returns_long, "Weekly Returns", "Weekly Return",
-  color_mapping_returns, "Weekly_Returns_Plot.png"
-)
+# Seperate plots for each series
+# Create 4 separate plots for each series and save them in the same file as a 2 by 2 grid
+plot <- ggplot(Research_Data_continuously_compounded_weekly_returns_long, aes(x = Date, y = Weekly_Return)) +
+  geom_line(aes(color = Series), size = 0.7) +
+  facet_wrap(~ Series, scales = "free", ncol = 2) +  # Create a 2 by 2 grid
+  labs(x = "Date", y = "Volatility") +
+  scale_color_manual(values = c("EU ETS" = "blue", "NZ ETS" = "green", "CA CaT" = "brown", "HB ETS" = "black")) +
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") +  # Set x-axis to show yearly ticks
+  theme_minimal() +
+  theme(
+    legend.position = "none",
+    panel.grid = element_blank(),  # Remove grid lines
+    axis.title = element_text(size = 16),  # Increase size of axis titles
+    axis.text = element_text(size = 14),  # Increase size of axis labels
+    strip.text = element_text(size = 16, face = "bold", hjust = 0),  # Left-align series labels
+    axis.line.x.bottom = element_line(color = "black", size = 0.5),  # Add x-axis line
+    axis.line.y.left = element_line(color = "black", size = 0.5),  # Add y-axis line
+    axis.ticks = element_line(color = "black", size = 0.5),  # Add axis ticks
+    axis.ticks.length = unit(0.2, "cm")  # Length of the ticks
+  )
 
-plot_volatility <- create_and_save_plots(
-  Research_Data_weekly_volatility_long, "Weekly Volatility", "Weekly Volatility",
-  color_mapping_volatility, "Weekly_Volatility_Plot.png"
-)
-
+# Export the plot to a html file
+htmlwidgets::saveWidget(plotly::ggplotly(plot), "Weekly_Returns_Plot.html")
 
 #---------------------------------------
+
+## Weekly Volatility ##
+#---------------------------------------
+
+# Plot the weekly volatility as 4 separate charts for each series but merge them into one file
+# Convert xts objects to data frames, capturing Date indices
+Research_Data_annualised_weekly_volatility <- data.frame(Date = Research_Data_weekly_volatility_dates, coredata(Research_Data_weekly_volatility))
+
+# Match Column Names to the paper
+colnames(Research_Data_annualised_weekly_volatility) <- c('Date',colnames(Research_Data_weekly_volatility))
+
+# Melt the data for plotting (if using ggplot2 and the data is wide)
+Research_Data_annualised_weekly_volatility_long <- melt(Research_Data_annualised_weekly_volatility, id.vars = "Date", variable.name = "Series", value.name = "Weekly_Volatility")
+
+# Create 4 separate plots for each series and save them in the save file as a 2 by 2 grid
+# Plot the weekly volatility for each series
+p <- ggplot(Research_Data_annualised_weekly_volatility_long, aes(x = Date)) +
+  geom_line(aes(y = Weekly_Volatility, color = Series)) +
+  labs(title = "Weekly Volatility",
+       x = "Date",
+       y = "Weekly Volatility") +
+  scale_color_manual(values = c("EUR_EUR" = "blue", "NZ_EUR" = "red", "CCA...Front.December...ICE" = "green", "Hubei_EUR" = "purple")) +
+  facet_wrap(~ Series, scales = "free_y") +  # Create a separate plot for each series
+  theme_minimal()
+
+# Save plots together in one file
+#ggsave("Weekly_Volatility_Plot.png", bg = "white")
+
+# Save plots as plotly interactive plots
+# Convert the ggplot object to a plotly object
+plotly::ggplotly(p)
+
+# Seperate plots for each series
+# Create 4 separate plots for each series and save them in the same file as a 2 by 2 grid
+plot <- ggplot(Research_Data_annualised_weekly_volatility_long, aes(x = Date, y = Weekly_Volatility)) +
+  geom_line(aes(color = Series), size = 0.7) +
+  facet_wrap(~ Series, scales = "free", ncol = 2) +  # Create a 2 by 2 grid
+  labs(x = "Date", y = "Volatility") +
+  scale_color_manual(values = c("EU ETS" = "blue", "NZ ETS" = "green", "CA CaT" = "brown", "HB ETS" = "black")) +
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") +  # Set x-axis to show yearly ticks
+  theme_minimal() +
+  theme(
+    legend.position = "none",
+    panel.grid = element_blank(),  # Remove grid lines
+    axis.title = element_text(size = 16),  # Increase size of axis titles
+    axis.text = element_text(size = 14),  # Increase size of axis labels
+    strip.text = element_text(size = 16, face = "bold", hjust = 0),  # Left-align series labels
+    axis.line.x.bottom = element_line(color = "black", size = 0.5),  # Add x-axis line
+    axis.line.y.left = element_line(color = "black", size = 0.5),  # Add y-axis line
+    axis.ticks = element_line(color = "black", size = 0.5),  # Add axis ticks
+    axis.ticks.length = unit(0.2, "cm")  # Length of the ticks
+  )
+
+
+# Export the plot to a html file
+htmlwidgets::saveWidget(plotly::ggplotly(plot), "Weekly_Volatility_Plot.html")
+
 
 ## Data Export ##
 #---------------------------------------
@@ -500,8 +556,8 @@ Research_Data_weekly_returns_df <- as.data.frame(Research_Data_weekly_returns)
 Research_Data_weekly_volatility_df <- as.data.frame(Research_Data_weekly_volatility)
 
 # Add the index (date) as a column in the data frame
-Research_Data_weekly_returns_df$Date <- index(Research_Data_weekly_returns)
-Research_Data_weekly_volatility_df$Date <- index(Research_Data_weekly_volatility)
+Research_Data_weekly_returns_df$Date <- Research_Data_weekly_returns_dates
+Research_Data_weekly_volatility_df$Date <- Research_Data_weekly_volatility_dates
 
 # Move the Date column to the first position
 Research_Data_weekly_returns_df <- Research_Data_weekly_returns_df[, c(ncol(Research_Data_weekly_returns_df), 1:(ncol(Research_Data_weekly_returns_df)-1))]
