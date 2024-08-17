@@ -23,10 +23,20 @@ setwd(Git)
 #-----------------------------------------
 
 # Read exchange rate data
-exchange_rate_data <- readr::read_csv("Refinitiv_Exchange_Rates.csv")
+exchange_rate_data1 <- readr::read_csv("Refinitiv_Exchange_Rates.csv")
+
+# Read exchange rate data 'EUR Cross Rates' sheet xlsx from Refinitiv
+exchange_rate_data <- readxl::read_excel("EUR Cross Rates 20Y 16082024.xlsx", sheet = "Table Data")
+
+# Remove the first row
+exchange_rate_data <- exchange_rate_data[-1, ]
 
 # Format the date column
-exchange_rate_data$Date <- as.Date(exchange_rate_data$Date, format = "%d/%m/%Y")
+#exchange_rate_data1$Date <- as.Date(exchange_rate_data$Date, format = "%d/%m/%Y")
+exchange_rate_data$Date <- as.Date(exchange_rate_data$Date, format = "%d-%m-%Y")
+
+# Rename column names to currency codes; USD, CNY, AUD, KRW, NZD, CAD, JPY, GBP
+colnames(exchange_rate_data) <- c("Date", "USD", "CNY", "AUD", "KRW", "NZD", "CAD", "JPY", "GBP")
 
 # Read the ICAP data
 icap_data <- readr::read_csv("ICAP_secondary_market_data.csv")
@@ -61,9 +71,7 @@ clearblue_data <- zoo::zoo(clearblue_data[, -1], order.by = clearblue_data$Date)
 # Convert the exchange rate data to a zoo object
 exchange_rate_data <- zoo::zoo(exchange_rate_data[, -1], order.by = exchange_rate_data$Date)
 
-
 #--------------------------------------------------------------
-
 
 ### Convert all domestic currency prices into EUR denominated prices ###
 
@@ -253,12 +261,6 @@ print(comparison)
 # Extract the Date index and convert zoo objects to dataframes
 clearblue_data_eur_df <- data.frame(Date = index(clearblue_data_eur), coredata(clearblue_data_eur))
 icap_data_eur_df <- data.frame(Date = index(icap_data_eur), coredata(icap_data_eur))
-
-#### REMOVE ONCE EXCHANGE RATE DATA IS EXTENDED
-# Trim data to end at 09 May 2024 when exchange rate data ends
-end_date <- as.Date("2024-05-09")
-clearblue_data_eur_df <- clearblue_data_eur_df[clearblue_data_eur_df$Date <= end_date, ]
-icap_data_eur_df <- icap_data_eur_df[icap_data_eur_df$Date <= end_date, ]
 
 # Export the dataframes to CSV files
 write.csv(clearblue_data_eur_df, "clearblue_data_eur.csv", row.names = FALSE)

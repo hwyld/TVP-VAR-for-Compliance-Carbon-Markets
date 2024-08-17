@@ -158,8 +158,8 @@ summary_stats_ICAP_df <- summary_stats_to_df(summary_stats_ICAP)
 summary_stats_Clearblue_df <- summary_stats_to_df(summary_stats_Clearblue)
 
 # Convert date info arrays to data frames
-valid_date_info_ICAP_df <- dates_to_df(valid_date_info_ICAP)
-valid_date_info_Clearblue_df <- dates_to_df(valid_date_info_Clearblue)
+valid_date_info_ICAP_df <- (valid_date_info_ICAP)
+valid_date_info_Clearblue_df <- (valid_date_info_Clearblue)
 
 # Combine summary stats with the corresponding date info
 ICAP_combined_df <- cbind(valid_date_info_ICAP_df, summary_stats_ICAP_df)
@@ -281,13 +281,13 @@ summary_stats_Research_data <- sapply(Research_Data_xts, safe_describe, simplify
 summary_stats_Research_data_df <- summary_stats_to_df(summary_stats_Research_data)
 
 # Convert date info arrays to data frames
-valid_date_info_Research_data_df <- dates_to_df(valid_date_info_Research_data)
+valid_date_info_Research_data_df <- t(valid_date_info_Research_data)
 
 # Combine summary stats with the corresponding date info
 Research_data_combined_df <- cbind(valid_date_info_Research_data_df, summary_stats_Research_data_df)
 
 # Merge the combined data frames and order by oldest start date
-merged_dates <- merged_dates[order(as.Date(Research_data_combined_df$Start, "%Y-%m-%d")), ]
+merged_dates <- Research_data_combined_df[order(as.Date(Research_data_combined_df$Start, "%Y-%m-%d")), ]
 
 # Display the merged and ordered data frame
 print(merged_dates)
@@ -297,7 +297,6 @@ html_table <- kable(merged_dates, format = "html", escape = FALSE)
 
 # Save the HTML table to a file
 writeLines(html_table, "Summary_Statistics_Research_Data.html")
-
 
 # Export to Git
 #---------------------------------------
