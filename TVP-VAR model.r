@@ -85,7 +85,7 @@ decay_factor <- 0.96
 dca = ConnectednessApproach(return_zoo, 
                             nlag=lag_order, 
                             nfore=H,
-                            window.size=300,
+                            window.size=250,
                             model="TVP-VAR",
                             connectedness="Time",
                             VAR_config=list(TVPVAR=list(kappa1=forgetting_factor, kappa2=decay_factor, prior="BayesPrior"))) # TVP-VAR model with forgetting factor and decay factor as specified

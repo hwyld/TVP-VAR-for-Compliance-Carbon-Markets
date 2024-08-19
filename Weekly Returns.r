@@ -316,14 +316,6 @@ Research_Data_weekly_returns <- apply(Research_Data_weekly_returns, 2, fill_na_a
 # Apply the function to each column in Research_Data_weekly_volatility
 Research_Data_weekly_volatility <- apply(Research_Data_weekly_volatility, 2, fill_na_after_first_valid)
 
-# Calculate stats for Research_Data_weekly_returns after NAs are adjusted
-returns_stats_adj <- calculate_na_stats(Research_Data_weekly_returns)
-print(returns_stats_adj)
-
-# Calculate stats for Research_Data_weekly_volatility after NAs are adjusted
-volatility_stats_adj <- calculate_na_stats(Research_Data_weekly_volatility)
-print(volatility_stats_adj)
-
 # Check for any missing values
 sum(is.na(Research_Data_weekly_returns))
 sum(is.na(Research_Data_weekly_volatility))
@@ -567,3 +559,72 @@ Research_Data_weekly_volatility_df <- Research_Data_weekly_volatility_df[, c(nco
 write.csv(Research_Data_weekly_returns_df, "Research_Data_weekly_returns.csv", row.names = FALSE)
 write.csv(Research_Data_weekly_volatility_df, "Research_Data_weekly_volatility.csv", row.names = FALSE)
 #---------------------------------------
+
+## Comparison to Semester 1 paper
+
+#---------------------------------------
+
+# Ensure the Date column is of Date type
+Research_Data_weekly_returns_df$Date <- as.Date(Research_Data_weekly_returns_df$Date)
+Research_Data_weekly_volatility_df$Date <- as.Date(Research_Data_weekly_volatility_df$Date)
+
+# Subset the data to between Friday May 2, 2014, to Friday December 3, 2021
+Research_Data_weekly_returns_subset <- subset(Research_Data_weekly_returns_df, Date >= as.Date("2014-05-02") & Date <= as.Date("2021-12-03"))
+Research_Data_weekly_volatility_subset <- subset(Research_Data_weekly_volatility_df, Date >= as.Date("2014-05-02") & Date <= as.Date("2021-12-03"))
+
+# Turn into xts objects
+Research_Data_weekly_returns_subset <- xts(Research_Data_weekly_returns_subset[, -1], order.by = Research_Data_weekly_returns_subset$Date)
+Research_Data_weekly_volatility_subset <- xts(Research_Data_weekly_volatility_subset[, -1], order.by = Research_Data_weekly_volatility_subset$Date)
+
+# Run Summary Statistics
+summary_stats_returns_subset <- apply(Research_Data_weekly_returns_subset, 2, calculate_descriptive_stats)
+summary_stats_volatility_subset <- apply(Research_Data_weekly_volatility_subset, 2, calculate_descriptive_stats)
+
+# Transpose to match required format
+summary_stats_returns <- t(summary_stats_returns_subset)
+summary_stats_volatility <- t(summary_stats_volatility_subset)
+
+# Convert to data frames for better formatting and set column names
+summary_stats_returns_df <- as.data.frame(summary_stats_returns)
+summary_stats_volatility_df <- as.data.frame(summary_stats_volatility)
+
+# Set the column names
+colnames(summary_stats_returns_df) <- c("Mean", "Min", "Max", "St.dev.", "Skew.", "Kurt.", "ADF")
+colnames(summary_stats_volatility_df) <- c("Mean", "Min", "Max", "St.dev.", "Skew.", "Kurt.", "ADF")
+
+# Drop KAU, ACCU, UKA, CEA, WCA
+# Define the row names to drop
+rows_to_drop <- c("KAU", "ACCU", "UKA", "CEA", "WCA")
+
+# Drop the specified rows
+summary_stats_returns_df <- summary_stats_returns_df[!rownames(summary_stats_returns_df) %in% rows_to_drop, ]
+summary_stats_volatility_df <- summary_stats_volatility_df[!rownames(summary_stats_volatility_df) %in% rows_to_drop, ]
+
+# Order as EUA, NZU, CCA, HBEA
+desired_order <- c("EUA", "NZU", "CCA", "HBEA")
+
+# Reorder the rows based on the desired order
+summary_stats_returns_df <- summary_stats_returns_df[desired_order, ]
+summary_stats_volatility_df <- summary_stats_volatility_df[desired_order, ]
+
+# Transpose the data frames
+summary_stats_returns <- t(t(summary_stats_returns_df))
+summary_stats_volatility <- t(t(summary_stats_volatility_df))
+
+## Export the tables to HTML
+stargazer(summary_stats_returns, 
+          type = "html", 
+          digits=3, align=TRUE,
+          intercept.bottom=FALSE,
+          title = "Summary Statistics for Returns",
+          out= "Summary Statistics for Returns Replication Exercise Data.html"
+        )
+
+stargazer(summary_stats_volatility, 
+          type = "html", 
+          digits=3, align=TRUE,
+          intercept.bottom=FALSE,
+          title = "Summary Statistics for Volatility",
+          out= "Summary Statistics for Volatility Replication Exercise Data.html")
+
+# Summary stats are slightly different to the paper, but this is likely due to the different data sources used. Not materially different.

@@ -305,3 +305,11 @@ setwd(Git)
 # Final Data Set
 write.csv(Research_Data, "Research_data.csv")
 #---------------------------------------
+
+
+#Outliers
+
+# Check for outliers in the data
+outliers <- boxplot(Research_Data_xts, plot = TRUE)$out
+
+# HBEA 24/11/2023 ICAP data
