@@ -59,7 +59,8 @@ load_packages <- function(update = FALSE) {
     urca = "unit root and cointegration tests in R",
     psych = "psychological research in R",
     flextable = "create tables in R",
-    moments = "statistical moments in R"
+    moments = "statistical moments in R",
+    doParallel = "parallel computing in R"
   )
 
   # Update all packages if specified
