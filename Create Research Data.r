@@ -201,7 +201,9 @@ writeLines(html_table, "Summary_Statistics.html")
   # Jul 2021, start of CEA time series
   # Dec 2022, start of WCA time series
 
-# Rolling 3 year windows?
+# ICAP Data includes NZU, EUA, HBEA, CEA, KAU
+# Clearblue Data includes ACCU, UKA, WCA, CCA
+# Will have to extend the NZU data to include Clearblue data
 
 #---------------------------------------
 
