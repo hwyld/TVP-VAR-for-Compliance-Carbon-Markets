@@ -27,7 +27,7 @@ setwd(ICAP_Data)
 # Only want to keep spot price including EU ETS, NZ ETS, K ETS, China ETS, Hubei ETS ;  https://icapcarbonaction.com/en/documentation-allowance-price-explorer
 
 # Read the csv file
-df <- readr::read_csv("Primary.csv")
+df <- readr::read_csv("Secondary.csv")
 
 ## Save the ETS Order
 

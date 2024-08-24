@@ -29,6 +29,9 @@ path <- Clearblue_Data
 # Create loop to read all CSV files in the directory
 files <- list.files(path, pattern = "*.csv", full.names = TRUE)
 
+# Remove the Clearblue_market_data from list
+files <- files[!files %in% "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Data/Clearblue Markets/Clearblue_market_data.csv"]
+
 # Print the names of the files being processed
 print("Files being processed:")
 print(files)
@@ -68,7 +71,10 @@ read_and_format_csv <- function(file) {
 dataframes <- lapply(files, read_and_format_csv)
 
 # Create a list of dataframes with meaningful names
-dataframes <- setNames(dataframes, gsub(".csv", "", list.files(path, pattern = "*.csv")))
+dataframes <- setNames(dataframes, gsub(".csv", "", files))
+
+# Remove path from the names
+dataframes <- setNames(dataframes, gsub("C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Data/Clearblue Markets/", "", names(dataframes)))
 
 # Check the structure of the dataframes
 lapply(dataframes, head)

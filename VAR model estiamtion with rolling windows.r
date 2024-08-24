@@ -163,7 +163,7 @@ library(vars)
 library(ConnectednessApproach)
 
 # Forecast horizon
-h <- 5
+h <- 10
 
 # Window size
 window_size <- 100
@@ -449,7 +449,7 @@ ggplot(HGTest_df, aes(x = Date)) +
 #----------------------------------
 
 
-
+stop()
 
 
 

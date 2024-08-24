@@ -543,6 +543,10 @@ htmlwidgets::saveWidget(plotly::ggplotly(plot), "Weekly_Volatility_Plot.html")
 ## Data Export ##
 #---------------------------------------
 
+# Trim data to start when NZU data set begins on 05/01/2010
+Research_Data_weekly_returns <- Research_Data_weekly_returns["2010-01-16/"]
+Research_Data_weekly_volatility <- Research_Data_weekly_volatility["2010-01-16/"]
+
 # Convert xts object to a data frame
 Research_Data_weekly_returns_df <- as.data.frame(Research_Data_weekly_returns)
 Research_Data_weekly_volatility_df <- as.data.frame(Research_Data_weekly_volatility)
@@ -554,6 +558,7 @@ Research_Data_weekly_volatility_df$Date <- Research_Data_weekly_volatility_dates
 # Move the Date column to the first position
 Research_Data_weekly_returns_df <- Research_Data_weekly_returns_df[, c(ncol(Research_Data_weekly_returns_df), 1:(ncol(Research_Data_weekly_returns_df)-1))]
 Research_Data_weekly_volatility_df <- Research_Data_weekly_volatility_df[, c(ncol(Research_Data_weekly_volatility_df), 1:(ncol(Research_Data_weekly_volatility_df)-1))]
+
 
 # Export the data to CSV files
 write.csv(Research_Data_weekly_returns_df, "Research_Data_weekly_returns.csv", row.names = FALSE)

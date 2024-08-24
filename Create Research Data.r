@@ -100,17 +100,63 @@ htmlwidgets::saveWidget(p, "Clearblue_Price_Plot.html")
 
 #---------------------------------------
 
-# Merge the dataframes on the Date column
-Merged_df_xts_df <- merge(ICAP_df_xts_df, Clearblue_df_xts_df, by = "Date", all = TRUE)
+# Mappings
+mappings <- list(
+  "NZU" = "New.Zealand.Emissions.Trading.System",
+  "EUA" = "European.Union.Emissions.Trading.System",
+  "HBEA" = "Hubei.Emissions.Trading.System",
+  "CEA" = "China.Emissions.Trading.System",
+  "KAU" = "Korean.Emissions.Trading.System"
+)
 
-# Optionally, handle missing values (e.g., fill NA with 0)
-#Merged_df_xts_df[is.na(Merged_df_xts_df)] <- 0
+# Rename the columns in ICAP_df_xts to match the mappings
+colnames(ICAP_df) <- c("Date","NZU", "EUA", "KAU", "UKA", "CEA", "HBEA")
+
+# Ensure both data frames have a 'Date' column and are ordered by date
+ICAP_df <- ICAP_df[order(ICAP_df$Date), ]
+Clearblue_df <- Clearblue_df[order(Clearblue_df$Date), ]
+
+# Drop the "UKA" column (representing United.Kingdom.Emissions.Trading.Scheme) from ICAP_df
+ICAP_df <- ICAP_df[, !colnames(ICAP_df) %in% "UKA"]
+
+# Merge the data frames on the 'Date' column, with ICAP_df data taking priority
+Merged_df_xts_df <- merge(ICAP_df, Clearblue_df, by = "Date", all = TRUE, suffixes = c("", ".cb"))
+
+print(tail(Merged_df_xts_df))
+
+# For columns that exist in both data frames, prefer data from ICAP_df; otherwise, use data from Clearblue_df
+for (col in intersect(colnames(ICAP_df), colnames(Clearblue_df))) {
+  icap_col <- col
+  clearblue_col <- paste0(col, ".cb")
+  
+  # Fill missing values in ICAP_df columns with Clearblue_df data
+  Merged_df_xts_df[[icap_col]] <- ifelse(is.na(Merged_df_xts_df[[icap_col]]), 
+                                         Merged_df_xts_df[[clearblue_col]], 
+                                         Merged_df_xts_df[[icap_col]])
+  
+  # Drop the Clearblue columns with the '.cb' suffix after merging
+  Merged_df_xts_df[[clearblue_col]] <- NULL
+}
+print(tail(Merged_df_xts_df))
+
+# Format the date column as a Date object
+Merged_df_xts_df$Date <- as.Date(Merged_df_xts_df$Date, format = "%Y-%m-%d")
+
+# Save as dataframe
+Merged_df <- Merged_df_xts_df
+
+# Check for duplicates
+duplicated_rows <- Merged_df[duplicated(Merged_df), ]
+
+# Convert Merged_df_xts_df to an xts object
+Merged_df_xts_df <- xts(Merged_df_xts_df[, -1], order.by = Merged_df_xts_df$Date)
 
 # Print the first few rows of the merged dataframe
-print(head(Merged_df_xts_df))
+print(head(Merged_df))
+print(tail(Merged_df))
 
 # Call the function to plot the data
-p <- plot_all_columns(Merged_df_xts_df)
+p <- plot_all_columns(Merged_df)
 
 # Save the plot
 htmlwidgets::saveWidget(p, "Merged_Price_Plot.html")
@@ -207,28 +253,8 @@ writeLines(html_table, "Summary_Statistics.html")
 
 #---------------------------------------
 
-# Remove CEA, EUA, NZU, KAU from merged dataset
-# Find the column numbers corresponding to the specified column names
-columns_to_remove <- which(colnames(Merged_df_xts_df) %in% c("United.Kingdom.Emissions.Trading.Scheme", "CEA", "EUA", "NZU", "KAU"))
-
 # Remove the columns by their indices
-Research_Data <- Merged_df_xts_df[, -columns_to_remove]
-
-# Check the remaining column names
-colnames(Research_Data)
-
-# Print the first few rows of the updated dataframe
-print(head(Research_Data))
-
-length(colnames(Research_Data))
-
-# Define new column names
-new_column_names <- c("Date", "NZU", "EUA", "KAU", "CEA", "HBEA", "ACCU", "UKA", "WCA", "CCA")
-
-length(new_column_names)
-
-# Rename columns of Merged_df_xts_df
-colnames(Research_Data) <- new_column_names
+Research_Data <- Merged_df
 
 # Print the first few rows of the updated dataframe
 print(head(Research_Data))
@@ -315,3 +341,4 @@ write.csv(Research_Data, "Research_data.csv")
 outliers <- boxplot(Research_Data_xts, plot = TRUE)$out
 
 # HBEA 24/11/2023 ICAP data
+
