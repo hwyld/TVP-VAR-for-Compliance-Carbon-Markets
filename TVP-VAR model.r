@@ -22,6 +22,7 @@ source("Packages.R")
 
 # Replication paper directory
 Rep <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Replication Exercise"
+Asym <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness"
 
 #----------------------------------
 
@@ -99,12 +100,48 @@ events_study_df$Midpoint <- as.Date(events_study_df$Midpoint, format = "%d/%m/%Y
 
 #----------------------------------
 
+
+## Asymmetric Series ##
+
+#----------------------------------
+
+# Returns zoo object
+# Initialize Y, Yp, and Yn with return_zoo and vol_zoo
+Y = Yp = Yn = return_zoo
+k = ncol(Y)
+
+# Loop through each column to create Y, Yp, and Yn
+for (i in 1:k) {
+  Yp[which(Y[,i] < 0), i] = 0
+  Yn[which(Y[,i] > 0), i] = 0
+}
+
+# Volatility zoo object
+# Create a list of V, Vp, and Vn
+V_list = list(V, Vp, Vn)
+
+V = Vp = Vn = vol_zoo
+k = ncol(V)
+
+# Loop through each column to create V, Vp, and Vn
+for (i in 1:k) {
+  Vp[which(V[,i] < 0), i] = 0
+  Vn[which(V[,i] > 0), i] = 0
+}
+
+# Create a list of V, Vp, and Vn
+V_list = list(V, Vp, Vn)
+
+#----------------------------------
+
 ## TVP-VAR model - Returns ##
+
 #----------------------------------
 
 # Specify the lag order
 lag_order <- 1  # his analysis uses first-order VARs (p = 1) (selected by Schwarz information criterion), 
 H <- 10 # with 10-step-ahead forecasts (H = 10).
+window_size <- 200 # Window size for the rolling window estimation
 
 # This study considers forgetting factor, kappa1=0.99 and decay factor kappa2=0.96 
 # follows Antonakakis et al. to keep the decay factors constant at fixed values.
@@ -112,16 +149,49 @@ H <- 10 # with 10-step-ahead forecasts (H = 10).
 forgetting_factor <- 0.99
 decay_factor <- 0.96
 
-# David Gabauer approach
+# TVP_VAR using ConnectednessApproach package
 dca = ConnectednessApproach(return_zoo, 
                             nlag=lag_order, 
                             nfore=H,
-                            window.size=200,
+                            window.size=window_size,
                             model="TVP-VAR",
                             connectedness="Time",
                             VAR_config=list(TVPVAR=list(kappa1=forgetting_factor, kappa2=decay_factor, prior="BayesPrior"))) # TVP-VAR model with forgetting factor and decay factor as specified
 
+#----------------------------------
+
+## Asymmetric TVP-VAR model - Returns ##
+
+#----------------------------------
+
+# This study considers forgetting factor, kappa1=0.99 and decay factor kappa2=0.99, With Minnesota Prior to keep the decay factors constant at fixed values.
+# follows Crude oil and Islamic sectoral stocks: Asymmetric connectedness and investment strategies
+# by Adekoya, Akinseye, Antonakakis, Chatziantoniou, Gabauer, and Oliyide (2021). 
+# See https://gabauerdavid.github.io/ConnectednessApproach/2020AntonakakisChatziantoniouGabauer
+
+forgetting_factor_asym <- 0.99
+decay_factor_asym <- 0.99
+
+# TVP_VAR using ConnectednessApproach package across 3 series
+DCA = list()
+spec = c("all", "positive", "negative")
+for (i in 1:length(Y_list)) {
+  DCA[[i]] = suppressMessages(ConnectednessApproach(Y_list[[i]], 
+                              model="TVP-VAR",
+                              connectedness="Time",
+                              nlag=lag_order,
+                              nfore=H,
+                              window.size=window_size,
+                              VAR_config=list(TVPVAR=list(kappa1=forgetting_factor_asym, kappa2=decay_factor_asym, prior="MinnesotaPrior", gamma=0.1))))
+  kable(DCA[[i]]$TABLE)
+}
+
+# Toggle for selecting normal or asymmetric VAR for returns #
+
+#----------------------------------
+
 ## EXTRACT DATA ##
+
 #----------------------------------
 # Extract the connectedness measures
 TCI_return <- as.data.frame(dca$TCI)
@@ -133,6 +203,7 @@ NET_return <- as.data.frame(dca$NET)
 #----------------------------------
 
 ## Total Connectedness Index - TCI ##
+
 #----------------------------------
 
 # Set the working directory to Rep to ensure all outputs go there
@@ -155,6 +226,7 @@ dev.off()
 #----------------------------------
 
 ## Dynamic directional spillovers TO markets ##
+
 #----------------------------------
 
 # Start PDF device before creating the plot
@@ -171,6 +243,7 @@ dev.off()
 #----------------------------------
 
 ## Dynamic directional spillovers FROM markets ##
+
 #----------------------------------
 
 # Start PDF device before creating the plot
@@ -187,6 +260,7 @@ dev.off()
 #----------------------------------
 
 ## Net Total Directional Connectedness - NET ##
+
 #----------------------------------
 
 # Start PDF device with adjusted height for more header space
@@ -201,6 +275,7 @@ dev.off()
 #----------------------------------
 
 ## Forecast Error Variance Decomposition (FEVD) ##
+
 #----------------------------------
 # The average connectedness matrix of the system is calculated as the average of the connectedness matrices over the entire sample period.
 
@@ -216,6 +291,7 @@ FEVD_returns <- as.data.frame(FEVD_returns)
 #----------------------------------
 
 ## TVP-VAR model - Volatility ##
+
 #----------------------------------
 
 dca = ConnectednessApproach(vol_zoo, 
@@ -226,8 +302,25 @@ dca = ConnectednessApproach(vol_zoo,
                             connectedness="Time",
                             VAR_config=list(TVPVAR=list(kappa1=forgetting_factor, kappa2=decay_factor, prior="BayesPrior"))) # TVP-VAR model with forgetting factor and decay factor as specified
 
+# TVP_VAR using ConnectednessApproach package across 3 series
+
+DCA = list()
+spec = c("all", "positive", "negative")
+for (i in 1:length(Y_list)) {
+  DCA[[i]] = suppressMessages(ConnectednessApproach(Y_list[[i]], 
+                              model="TVP-VAR",
+                              connectedness="Time",
+                              nlag=lag_order,
+                              nfore=H,
+                              window.size=window_size,
+                              VAR_config=list(TVPVAR=list(kappa1=forgetting_factor_asym, kappa2=decay_factor_asym, prior="MinnesotaPrior", gamma=0.1))))
+  kable(DCA[[i]]$TABLE)
+}
+
 ## EXTRACT DATA ##
+
 #----------------------------------
+
 # Extract the connectedness measures
 TCI_vol <- as.data.frame(dca$TCI)
 TCI_vol$Date <- as.Date(row.names(TCI_vol))
@@ -235,7 +328,10 @@ to_vol <- as.data.frame(dca$TO)
 from_vol  <- as.data.frame(dca$FROM)
 NET_vol <- as.data.frame(dca$NET)
 
+#----------------------------------
+
 ## Total Connectedness Index - TCI ##
+
 #----------------------------------
 
 # Start PDF device before creating the plot
@@ -255,6 +351,7 @@ dev.off()
 #----------------------------------
 
 ## Dynamic directional spillovers TO markets ##
+
 #----------------------------------
 
 # Start PDF device before creating the plot
@@ -271,6 +368,7 @@ dev.off()
 #----------------------------------
 
 ## Dynamic directional spillovers FROM markets ##
+
 #----------------------------------
 
 # Start PDF device before creating the plot
@@ -287,6 +385,7 @@ dev.off()
 #----------------------------------
 
 ## Net Total Directional Connectedness - NET ##
+
 #----------------------------------
 
 # Start PDF device with adjusted height for more header space
@@ -301,6 +400,7 @@ dev.off()
 #----------------------------------
 
 ## Forecast Error Variance Decomposition (FEVD) ##
+
 #----------------------------------
 # The average connectedness matrix of the system is calculated as the average of the connectedness matrices over the entire sample period.
 
@@ -350,6 +450,7 @@ writeLines(combined_html_lines, file.path(Rep, "combined_connectedness.html"))
 #----------------------------------
 
 # Plot TCI data with event study window
+
 #----------------------------------
 
 # Define custom colors for each category (adjust these to match the chart)
@@ -400,6 +501,7 @@ ggsave(file.path(Rep, "TCI_returns_with_events.png"), width = 8, height = 6, dpi
 #----------------------------------
 
 # Plot TCI data with event study window for volatility
+
 #----------------------------------
 
 # Create the plot
@@ -430,3 +532,8 @@ ggplot() +
 ggsave(file.path(Rep, "TCI_volatility_with_events.png"), width = 8, height = 6, dpi = 300, bg = "white")
 
 #----------------------------------
+
+
+
+# Create all and tables plots for the asymmetric TVP-VAR model #
+
