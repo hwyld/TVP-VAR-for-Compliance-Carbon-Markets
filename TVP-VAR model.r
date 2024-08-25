@@ -100,40 +100,6 @@ events_study_df$Midpoint <- as.Date(events_study_df$Midpoint, format = "%d/%m/%Y
 
 #----------------------------------
 
-
-## Asymmetric Series ##
-
-#----------------------------------
-
-# Returns zoo object
-# Initialize Y, Yp, and Yn with return_zoo and vol_zoo
-Y = Yp = Yn = return_zoo
-k = ncol(Y)
-
-# Loop through each column to create Y, Yp, and Yn
-for (i in 1:k) {
-  Yp[which(Y[,i] < 0), i] = 0
-  Yn[which(Y[,i] > 0), i] = 0
-}
-
-# Volatility zoo object
-# Create a list of V, Vp, and Vn
-V_list = list(V, Vp, Vn)
-
-V = Vp = Vn = vol_zoo
-k = ncol(V)
-
-# Loop through each column to create V, Vp, and Vn
-for (i in 1:k) {
-  Vp[which(V[,i] < 0), i] = 0
-  Vn[which(V[,i] > 0), i] = 0
-}
-
-# Create a list of V, Vp, and Vn
-V_list = list(V, Vp, Vn)
-
-#----------------------------------
-
 ## TVP-VAR model - Returns ##
 
 #----------------------------------
@@ -158,35 +124,6 @@ dca = ConnectednessApproach(return_zoo,
                             connectedness="Time",
                             VAR_config=list(TVPVAR=list(kappa1=forgetting_factor, kappa2=decay_factor, prior="BayesPrior"))) # TVP-VAR model with forgetting factor and decay factor as specified
 
-#----------------------------------
-
-## Asymmetric TVP-VAR model - Returns ##
-
-#----------------------------------
-
-# This study considers forgetting factor, kappa1=0.99 and decay factor kappa2=0.99, With Minnesota Prior to keep the decay factors constant at fixed values.
-# follows Crude oil and Islamic sectoral stocks: Asymmetric connectedness and investment strategies
-# by Adekoya, Akinseye, Antonakakis, Chatziantoniou, Gabauer, and Oliyide (2021). 
-# See https://gabauerdavid.github.io/ConnectednessApproach/2020AntonakakisChatziantoniouGabauer
-
-forgetting_factor_asym <- 0.99
-decay_factor_asym <- 0.99
-
-# TVP_VAR using ConnectednessApproach package across 3 series
-DCA = list()
-spec = c("all", "positive", "negative")
-for (i in 1:length(Y_list)) {
-  DCA[[i]] = suppressMessages(ConnectednessApproach(Y_list[[i]], 
-                              model="TVP-VAR",
-                              connectedness="Time",
-                              nlag=lag_order,
-                              nfore=H,
-                              window.size=window_size,
-                              VAR_config=list(TVPVAR=list(kappa1=forgetting_factor_asym, kappa2=decay_factor_asym, prior="MinnesotaPrior", gamma=0.1))))
-  kable(DCA[[i]]$TABLE)
-}
-
-# Toggle for selecting normal or asymmetric VAR for returns #
 
 #----------------------------------
 
@@ -302,20 +239,6 @@ dca = ConnectednessApproach(vol_zoo,
                             connectedness="Time",
                             VAR_config=list(TVPVAR=list(kappa1=forgetting_factor, kappa2=decay_factor, prior="BayesPrior"))) # TVP-VAR model with forgetting factor and decay factor as specified
 
-# TVP_VAR using ConnectednessApproach package across 3 series
-
-DCA = list()
-spec = c("all", "positive", "negative")
-for (i in 1:length(Y_list)) {
-  DCA[[i]] = suppressMessages(ConnectednessApproach(Y_list[[i]], 
-                              model="TVP-VAR",
-                              connectedness="Time",
-                              nlag=lag_order,
-                              nfore=H,
-                              window.size=window_size,
-                              VAR_config=list(TVPVAR=list(kappa1=forgetting_factor_asym, kappa2=decay_factor_asym, prior="MinnesotaPrior", gamma=0.1))))
-  kable(DCA[[i]]$TABLE)
-}
 
 ## EXTRACT DATA ##
 
@@ -533,7 +456,193 @@ ggsave(file.path(Rep, "TCI_volatility_with_events.png"), width = 8, height = 6, 
 
 #----------------------------------
 
+#### Asymmetric Series Preparation ####
+
+#------------------------------------------------------------------------
+
+prepare_asym_series <- function(zoo_object) {
+  Y = Yp = Yn = zoo_object
+  k = ncol(Y)
+  for (i in 1:k) {
+    Yp[which(Y[, i] < 0), i] = 0
+    Yn[which(Y[, i] > 0), i] = 0
+  }
+  return(list(Y = Y, Yp = Yp, Yn = Yn))
+}
+
+# Prepare asymmetric series for both returns and volatility
+asym_return <- prepare_asym_series(return_zoo)
+asym_vol <- prepare_asym_series(vol_zoo)
+
+#----------------------------------
+
+## Asymmetric TVP-VAR models ##
+
+#----------------------------------
+
+# Function to run TVP-VAR, save FEVD, and generate plots
+run_and_save_tvp_var <- function(asym_series, suffix) {
+  forgetting_factor_asym <- 0.99
+  decay_factor_asym <- 0.99
+  lag_order <- 1
+  H <- 10
+  window_size <- 200
+
+  DCA = list()
+  spec = c("all", "positive", "negative")
+  
+  FEVD_list <- list()  # Initialize list to store FEVDs
+  
+  for (i in 1:length(asym_series)) {
+    DCA[[i]] = suppressMessages(ConnectednessApproach(asym_series[[i]], 
+                                model = "TVP-VAR",
+                                connectedness = "Time",
+                                nlag = lag_order,
+                                nfore = H,
+                                window.size = window_size,
+                                VAR_config = list(TVPVAR = list(kappa1 = forgetting_factor_asym, kappa2 = decay_factor_asym, prior = "MinnesotaPrior", gamma = 0.1))))
+    
+    FEVD_list[[spec[i]]] <- DCA[[i]]$TABLE  # Store the FEVD for each specification
+  }
+
+  ## Save FEVD tables ##
+  for (i in 1:length(FEVD_list)) {
+    FEVD_df <- FEVD_list[[spec[i]]]
+    # Remove rows like "Inc.Own" and "NPT"
+    FEVD_df <- FEVD_df[!(rownames(FEVD_df) %in% c("Inc.Own", "NPT")), ]
+    # Save to HTML file
+    stargazer::stargazer(FEVD_df, type = "html", summary = FALSE, 
+                         title = paste("FEVD -", spec[i], suffix), 
+                         out = file.path(Asym, paste0("FEVD_", spec[i], "_", suffix, ".html")))
+  }
+
+  ## Plots ##
+  # Total Connectedness Index (TCI)
+  pdf(file.path(Asym, paste0("TCI_Asymmetric_", suffix, ".pdf")), width = 8, height = 6)
+  PlotTCI(DCA[[1]], ca = list(DCA[[2]], DCA[[3]]), ylim = c(-100, 100))
+  dev.off()
+
+  # Dynamic directional spillovers TO markets
+  pdf(file.path(Asym, paste0("TO_Asymmetric_", suffix, ".pdf")), width = 8, height = 6)
+  PlotTO(DCA[[1]], ca = list(DCA[[2]], DCA[[3]]), ylim = c(0, 100))
+  dev.off()
+
+  # Dynamic directional spillovers FROM markets
+  pdf(file.path(Asym, paste0("FROM_Asymmetric_", suffix, ".pdf")), width = 8, height = 6)
+  PlotFROM(DCA[[1]], ca = list(DCA[[2]], DCA[[3]]), ylim = c(0, 100))
+  dev.off()
+
+  # Net Total Directional Connectedness
+  pdf(file.path(Asym, paste0("NET_Asymmetric_", suffix, ".pdf")), width = 8, height = 6)
+  PlotNET(DCA[[1]], ca = list(DCA[[2]], DCA[[3]]), ylim = c(-50, 50))
+  dev.off()
+  
+  return(DCA)
+}
+
+# Run TVP-VAR and generate plots for both returns and volatility
+DCA_return <- run_and_save_tvp_var(asym_return, "r")
+DCA_vol <- run_and_save_tvp_var(asym_vol, "v")
+
+# Save the TCI series from DCA_return for use in chart below, create a dataframe for the event study
+TCI_asym_return <- as.data.frame(DCA_return[[1]]$TCI)
+
+# Name the column "all"
+colnames(TCI_asym_return) <- "all"
+
+# Add DCA_return[[2]]$TCI as Positive and DCA_return[[3]]$TCI as Negative
+TCI_asym_return$Positive <- DCA_return[[2]]$TCI
+TCI_asym_return$Negative <- DCA_return[[3]]$TCI
+
+# Add the Date column
+TCI_asym_return$Date <- as.Date(rownames(TCI_asym_return))
+
+# Save the TCI_asym_return dataframe to a CSV file
+write.csv(TCI_asym_return, file.path(Asym, "TCI_asym_return.csv"), row.names = FALSE)
 
 
-# Create all and tables plots for the asymmetric TVP-VAR model #
+#----------------------------------
 
+## Event Study Window Plots ##
+
+#----------------------------------
+
+# Define custom colors for each category (adjust these to match the chart)
+# This creates a color scheme for the different event categories in the event study.
+category_colors <- c(
+        "global politics" = "orange", 
+        "carbon market" = "red", 
+        "weather" = "gold",
+        "energy" = "blue",
+        "finance" = "blue",
+        "covid-19" = "purple"
+)
+
+# Add an EventNumber column to the TCI dataframe mapping the event number to repeat between the StartDate and EndDate
+# Here, we are adjusting the event study dates to ensure they fall within the TCI data's date range.
+events_study_df$EndDate <- pmin(events_study_df$EndDate, max(TCI_asym_return$Date))
+events_study_df$StartDate <- pmax(events_study_df$StartDate, min(TCI_asym_return$Date))
+
+# Calculating the midpoint of the event window for labeling and alternating label positions.
+events_study_df <- events_study_df %>%
+  mutate(
+    Midpoint = as.Date((as.numeric(StartDate) + as.numeric(EndDate)) / 2, origin = "1970-01-01"),  # Midpoint for event label positioning
+    LabelY = rep(seq(35, 40, length.out = n()), length.out = n())  # Alternating y positions for labels to avoid overlap
+  )
+
+# Create the plot
+ggplot() + 
+  # This adds shaded areas (rectangles) representing the time periods of different events in the event study.
+  geom_rect(data = events_study_df, aes(xmin = pmax(StartDate, min(TCI_asym_return$Date)), xmax = pmin(EndDate, max(TCI_asym_return$Date)), ymin = 0, ymax = 40, fill = Category), alpha = 0.2) +  
+  
+  # Adding vertical lines at the StartDate and EndDate of each event.
+  geom_segment(data = events_study_df, aes(x = StartDate, xend = StartDate, y = 0, yend = 40), linetype = "solid", color = "grey", size = 0.25, alpha = 0.25) +  
+  geom_segment(data = events_study_df, aes(x = EndDate, xend = EndDate, y = 0, yend = 40), linetype = "solid", color = "grey", size = 0.25, alpha = 0.25) +  
+  
+  # Placing event numbers at the midpoint of the event window for easier identification.
+  geom_text(data = events_study_df, aes(x = Midpoint, y = LabelY, label = EventNumber), angle = 90, vjust = 0.5, hjust = 0) +  
+  
+  # Drawing a shaded area under the 'All' line representing the total connectedness index for all events.
+  geom_ribbon(data = TCI_asym_return, aes(x = Date, ymin = 0, ymax = all), fill = "lightgrey", alpha = 1) +  
+  
+  # Plotting the line for the 'All' series from the TCI asymmetric return data.
+  geom_line(data = TCI_asym_return, aes(x = Date, y = all, color = "All"), size = 0.8) +
+  
+  # Plotting the line for the 'Positive' series with a dashed line.
+  geom_line(data = TCI_asym_return, aes(x = Date, y = Positive, color = "Positive"), linetype = "dashed", size = 0.8) +
+  
+  # Plotting the line for the 'Negative' series with a dotted line.
+  geom_line(data = TCI_asym_return, aes(x = Date, y = Negative, color = "Negative"), linetype = "dotted", size = 0.8) +
+  
+  # Adding labels and title to the plot.
+  labs(x = "Year", y = "Total Connectedness Index (TCI)", title = "Total Asymmetric Connectedness Event Study" )  +
+  
+  # Applying a minimal theme to the plot for a cleaner look.
+  theme_minimal() +  
+  
+  # Assigning custom fill colors to the event categories.
+  scale_fill_manual(values = category_colors, name = "Category") +  
+  
+  # Assigning custom colors to the 'All', 'Positive', and 'Negative' lines.
+  scale_color_manual(values = c("All" = "black", "Positive" = "blue", "Negative" = "red")) +
+  
+  # Customizing the theme for the plot.
+  theme(
+    axis.title.x = element_text(size = 12),  # X-axis title size
+    axis.title.y = element_text(size = 12),  # Y-axis title size
+    axis.text = element_text(size = 10),  # Axis text size
+    plot.title = element_text(size = 14, face = "bold"),  # Title size and bold
+    legend.position = "bottom",  # Legend position
+    panel.grid = element_blank(),  # Removing all gridlines
+    axis.line.x.bottom = element_line(color = "black", size = 1),  # Adding a line to the bottom of the x-axis
+    axis.line.y.left = element_line(color = "black", size = 1)  # Adding a line to the left of the y-axis
+  ) +
+  
+  # Setting the x-axis and y-axis limits and formats.
+  scale_x_date(limits = c(min(TCI_asym_return$Date), max(TCI_asym_return$Date)), date_breaks = "1 year", date_labels = "%Y") +
+  scale_y_continuous(limits = c(0, 40))
+
+# Save the plot as a PNG
+ggsave(file.path(Asym, paste0("TCI_Asymmetric_with_events_r", ".png")), width = 8, height = 6, dpi = 300, bg = "white")
+
+#------------------------------------------------------------------------

@@ -1,21 +1,65 @@
-Year,EventNumber,Event,Date Range,Category,StartDate,EndDate,Midpoint
-2014,1,"G7 Energy Ministers Summit, Rome",2014.05.05,global politics,5/05/2014,6/05/2014,5/05/2014
-2015,2,China coal power plant closure,2015.03.01–31,global politics,1/03/2015,31/03/2015,16/03/2015
-2015,3,COP21- Paris agreement,2015.11.30–12.12,global politics,30/11/2015,12/12/2015,6/12/2015
-2016,4,High-level UN debate on achieving the SDGs + Paris Agreement open for signature,2016.04.21–22,global politics,21/04/2016,22/04/2016,21/04/2016
-2018,5,COP24,2018.12.2–14,global politics,2/12/2018,14/12/2018,8/12/2018
-2019,6,COP25,2019-12.2-13,global politics,2/12/2019,13/12/2019,7/12/2019
-2015,7,Korea built ETS,2015.01.01–02.01,carbon market,1/01/2015,1/02/2015,16/01/2015
-2015,8,New Zealand delinked,2015.06.01–07.01,carbon market,1/06/2015,1/07/2015,16/06/2015
-2019,9,Hubei carbon price spike,2019.05.20–06.03,carbon market,20/05/2019,3/06/2019,27/05/2019
-2020,10,Swiss ETS linked to EU ETS,2020.01.01–02.01,carbon market,1/01/2020,1/02/2020,16/01/2020
-2021,11,China national ETS operation,2021.07.21–08.21,carbon market,21/07/2021,21/08/2021,5/08/2021
-2016,12,Big jump occurred in Global Land-Ocean Temperature Index,2016.02.01–28,weather,1/02/2016,28/02/2016,14/02/2016
-2016,13,"Worst air pollution episode in China, schools and factories ordered shut, 200 flights cancelled",2016.12.01–30,weather,1/12/2016,30/12/2016,15/12/2016
-2017,14,"Yangtze River flooding; Hurricanes Harvey, Irma, and Maria",2017.06.30–10.01,weather,30/06/2017,1/10/2017,15/08/2017
-2018,15,Multiple deadly heat waves hit East Asia + Monsoon flood in India where Kerala state reported 500 deaths,2018.07.20–08.30,weather,20/07/2018,30/08/2018,9/08/2018
-2014,16,Oil price crisis,2014.06–2015.01,energy,1/06/2014,1/01/2015,16/09/2014
-2015,17,Stock market selloff (initially began in China),2015.06.12–08.26,finance,12/06/2015,26/08/2015,19/07/2015
-2018,18,2018 cryptocurrency crash-Bitcoin ultimately fell by approximately 65 %,2018.01–02,finance,1/01/2018,1/02/2018,16/01/2018
-2019,19,Covid hit China,2019.12.31,covid-19,31/12/2019,1/01/2020,31/12/2019
-2021,20,Covid-19 pandemic started,2021.03–2022.12,covid-19,1/03/2020,1/12/2022,16/07/2021
+Year,EventNumber,Event,Date Range,Category,StartDate,EndDate,Midpoint,Description
+2014,1,"G7 Energy Ministers Summit, Rome",2014.05.05,global politics,5/05/2014,6/05/2014,5/05/2014,No description provided.
+2015,2,China coal power plant closure,2015.03.01–31,global politics,1/03/2015,31/03/2015,16/03/2015,No description provided.
+2015,3,COP21- Paris agreement,2015.11.30–12.12,global politics,30/11/2015,12/12/2015,6/12/2015,No description provided.
+2016,4,High-level UN debate on achieving the SDGs + Paris Agreement open for signature,2016.04.21–22,global politics,21/04/2016,22/04/2016,21/04/2016,No description provided.
+2018,5,COP24,2018.12.2–14,global politics,2/12/2018,14/12/2018,8/12/2018,No description provided.
+2019,6,COP25,2019-12.2-13,global politics,2/12/2019,13/12/2019,7/12/2019,No description provided.
+2015,7,Korea built ETS,2015.01.01–02.01,carbon market,1/01/2015,1/02/2015,16/01/2015,No description provided.
+2015,8,New Zealand delinked,2015.06.01–07.01,carbon market,1/06/2015,1/07/2015,16/06/2015,No description provided.
+2019,9,Hubei carbon price spike,2019.05.20–06.03,carbon market,20/05/2019,3/06/2019,27/05/2019,No description provided.
+2020,10,Swiss ETS linked to EU ETS,2020.01.01–02.01,carbon market,1/01/2020,1/02/2020,16/01/2020,No description provided.
+2021,11,China national ETS operation,2021.07.21–08.21,carbon market,21/07/2021,21/08/2021,5/08/2021,No description provided.
+2016,12,Big jump occurred in Global Land-Ocean Temperature Index,2016.02.01–28,weather,1/02/2016,28/02/2016,14/02/2016,No description provided.
+2016,13,"Worst air pollution episode in China, schools and factories ordered shut, 200 flights cancelled",2016.12.01–30,weather,1/12/2016,30/12/2016,15/12/2016,No description provided.
+2017,14,"Yangtze River flooding; Hurricanes Harvey, Irma, and Maria",2017.06.30–10.01,weather,30/06/2017,1/10/2017,15/08/2017,No description provided.
+2018,15,Multiple deadly heat waves hit East Asia + Monsoon flood in India where Kerala state reported 500 deaths,2018.07.20–08.30,weather,20/07/2018,30/08/2018,9/08/2018,No description provided.
+2014,16,Oil price crisis,2014.06–2015.01,energy,1/06/2014,1/01/2015,16/09/2014,No description provided.
+2015,17,Stock market selloff (initially began in China),2015.06.12–08.26,finance,12/06/2015,26/08/2015,19/07/2015,No description provided.
+2018,18,2018 cryptocurrency crash-Bitcoin ultimately fell by approximately 65 %,2018.01–02,finance,1/01/2018,1/02/2018,16/01/2018,No description provided.
+2019,19,Covid hit China,2019.12.31,covid-19,31/12/2019,1/01/2020,31/12/2019,No description provided.
+2021,20,Covid-19 pandemic started,2021.03–2022.12,covid-19,1/03/2020,1/12/2022,16/07/2021,No description provided.
+2023,21,EU's Carbon Border Adjustment Mechanism (CBAM) Adoption,2023.07.01-2023.07.31,global politics,1/07/2023,31/07/2023,16/07/2023,"The European Union formally adopts the CBAM, impacting global trade by requiring importers to buy carbon certificates for emissions related to goods."
+2025,22,Launch of New Zealand's ETS with Agriculture Inclusion,2025.01.01-2025.01.31,carbon market,1/01/2025,31/01/2025,16/01/2025,New Zealand expands its Emissions Trading Scheme to include the agricultural sector.
+2023,23,Introduction of Australian Safeguard Mechanism Reforms,2023.07.01-2023.07.31,carbon market,1/07/2023,31/07/2023,16/07/2023,"The Australian government reforms its Safeguard Mechanism, tightening emission limits for large emitters."
+2024,24,Introduction of China's National ETS Phase 2,2024.01.01-2024.01.31,carbon market,1/01/2024,31/01/2024,16/01/2024,"China transitions to Phase 2 of its national ETS, expanding coverage to additional industries."
+2024,25,2024 European Heatwave Impacting Energy and Carbon Prices,2024.07.01-2024.07.31,weather,1/07/2024,31/07/2024,16/07/2024,A significant heatwave in Europe leads to increased energy demand and higher carbon prices in the EU ETS.
+2021,26,Global Coal Phase-Out Agreement at COP26,2021.11.01-2021.11.12,energy,1/11/2021,12/11/2021,6/11/2021,"An international agreement is reached to phase out coal power, significantly impacting global carbon markets."
+2024,27,Introduction of Carbon Pricing in the IMF's Global Economic Outlook,2024.04.01-2024.04.30,finance,1/04/2024,30/04/2024,15/04/2024,"The IMF includes carbon pricing scenarios in its global economic outlook, influencing investment decisions."
+2020,28,Impact of COVID-19 on Global Carbon Markets,2020.03.01-2020.12.31,covid-19,1/03/2020,31/12/2020,15/07/2020,"The pandemic causes a significant drop in global emissions, leading to volatile carbon prices in major markets."
+2016,29,UK Referendum on EU Membership (Brexit Vote),2016.06.23-2016.06.23,global politics,23/06/2016,23/06/2016,23/06/2016,"The UKâ€™s vote to leave the European Union created uncertainty in the EU ETS, impacting carbon prices and financial markets across Europe."
+2017,30,US Announces Withdrawal from Paris Agreement,2017.06.01-2017.06.01,global politics,1/06/2017,1/06/2017,1/06/2017,The Trump administrationâ€™s decision to withdraw from the Paris Agreement sent shockwaves through global carbon markets and led to fluctuations in energy sector investments.
+2019,31,European Commission Announces European Green Deal,2019.12.11-2019.12.11,global politics,11/12/2019,11/12/2019,11/12/2019,"The announcement of the European Green Deal aimed at making the EU climate-neutral by 2050, leading to significant impacts on carbon markets and financial sectors tied to renewable energy and sustainability."
+2020,32,China Announces Carbon Neutrality Target by 2060,2020.09.22-2020.09.22,global politics,22/09/2020,22/09/2020,22/09/2020,Chinaâ€™s pledge to become carbon neutral by 2060 influenced global carbon markets and signaled potential shifts in energy investments.
+2021,33,US Rejoins the Paris Agreement,2021.01.20-2021.01.20,global politics,20/01/2021,20/01/2021,20/01/2021,The Biden administrationâ€™s decision to rejoin the Paris Agreement revitalized global climate cooperation and affected financial markets by boosting renewable energy sectors and carbon markets.
+2022,34,Russian Invasion of Ukraine,2022.02.24-2022.02.24,global politics,24/02/2022,24/02/2022,24/02/2022,"The invasion led to severe disruptions in global energy markets, with significant impacts on EU carbon prices and a shift towards energy independence within Europe."
+2021,35,COP26 - Glasgow Climate Pact Agreement,2021.11.01-2021.11.12,global politics,1/11/2021,12/11/2021,6/11/2021,"The outcomes of COP26, including the Glasgow Climate Pact, had significant implications for carbon markets, particularly with commitments to phase down coal and enhance carbon pricing mechanisms."
+2022,36,US Inflation Reduction Act Signed into Law,2022.08.16-2022.08.16,global politics,16/08/2022,16/08/2022,16/08/2022,"The Inflation Reduction Act, with its significant investments in clean energy and carbon reduction strategies, influenced both US and global financial markets, especially in the renewable energy and carbon credit sectors."
+2021,37,Launch of Phase 4 of the EU ETS,2021.01.01-2021.12.31,carbon market,1/01/2021,31/12/2021,1/07/2021,"The beginning of Phase 4 of the EU ETS, with stricter emission reduction targets and updated allocation rules, impacting carbon prices."
+2023,38,Inclusion of Maritime Shipping in the EU ETS,2023.01.01-2023.12.31,carbon market,1/01/2023,31/12/2023,1/07/2023,"The EU ETS is expanded to include emissions from maritime shipping, increasing demand for allowances."
+2022,39,EU ETS Price Surge,2022.02.01-2022.03.31,carbon market,1/02/2022,31/03/2022,1/03/2022,Carbon prices in the EU ETS reach record highs due to tightening supply and increased energy prices.
+2021,40,Introduction of Auctioning in the NZ ETS,2021.03.17-2021.03.17,carbon market,17/03/2021,17/03/2021,17/03/2021,"New Zealand introduces auctioning of emissions units, significantly impacting the supply and pricing of NZUs."
+2019,41,Implementation of the Zero Carbon Act,2019.11.01-2019.11.01,carbon market,1/11/2019,1/11/2019,1/11/2019,"The Zero Carbon Act comes into force, setting New Zealand on a path to net-zero emissions by 2050, impacting the NZ ETS."
+2022,42,Review of NZ ETS and Inclusion of Agriculture,2022.06.01-2022.12.31,carbon market,1/06/2022,31/12/2022,16/09/2022,"The government reviews the NZ ETS, with discussions on including agriculture, one of the largest emitting sectors."
+2021,43,ACCU Price Surge Due to Corporate Demand,2021.09.01-2021.12.31,carbon market,1/09/2021,31/12/2021,1/11/2021,"ACCU prices surge as corporate demand for carbon offsets increases, driven by net-zero commitments."
+2023,44,Introduction of the Safeguard Mechanism Crediting,2023.07.01-2023.07.31,carbon market,1/07/2023,31/07/2023,16/07/2023,"Australia introduces a mechanism to credit reductions in emissions below baseline levels, influencing ACCU markets."
+2022,45,Changes in ACCU Methodologies,2022.04.01-2022.06.30,carbon market,1/04/2022,30/06/2022,15/05/2022,"The Australian government updates methodologies for generating ACCUs, impacting project viability and market supply."
+2021,46,Start of Phase 3 of the Korea ETS,2021.01.01-2021.12.31,carbon market,1/01/2021,31/12/2021,1/07/2021,"Phase 3 of the Korea ETS begins, introducing stricter caps and new sectors, affecting KAU prices."
+2020,47,Introduction of Market Stabilization Measures in Korea ETS,2020.06.01-2020.08.31,carbon market,1/06/2020,31/08/2020,16/07/2020,South Korea implements market stabilization measures in the KAU market to address price volatility.
+2023,48,Expansion of KAU Coverage to New Sectors,2023.01.01-2023.12.31,carbon market,1/01/2023,31/12/2023,1/07/2023,"The Korean ETS expands to include additional industrial sectors, impacting the demand for KAUs."
+2014,49,Linkage of California and Quebec Carbon Markets,2014.01.01-2014.12.31,carbon market,1/01/2014,31/12/2014,1/07/2014,"California and Quebec link their cap-and-trade programs, allowing mutual acceptance of carbon allowances."
+2017,50,Adoption of 2030 Scoping Plan in California,2017.12.14-2017.12.14,carbon market,14/12/2017,14/12/2017,14/12/2017,"California adopts its 2030 Scoping Plan, which includes stricter GHG reduction targets and impacts CCA prices."
+2020,51,CCA Price Floor Increase in California,2020.01.01-2020.01.31,carbon market,1/01/2020,31/01/2020,16/01/2020,"California increases the price floor for CCAs, providing greater price certainty but also increasing compliance costs."
+2013,52,Launch of the National ETS Pilot in Hubei,2013.04.02-2013.04.02,carbon market,2/04/2013,2/04/2013,2/04/2013,"Hubei launches its pilot carbon trading scheme, which later becomes a model for China's national ETS."
+2021,53,Integration of Hubei Market into the National ETS,2021.07.01-2021.07.31,carbon market,1/07/2021,31/07/2021,16/07/2021,"Hubeiâ€™s carbon market is integrated into Chinaâ€™s national ETS, leading to changes in allowance prices and trading volumes."
+2024,54,Impact of Chinese New Year on Hubei ETS Trading Volumes,2024.02.01-2024.02.28,carbon market,1/02/2024,28/02/2024,14/02/2024,"Trading volumes in the Hubei ETS drop significantly during the Chinese New Year, leading to temporary price adjustments."
+2022,55,Chubb Review of ACCUs,2022.03.01-2022.03.31,carbon market,1/03/2022,31/03/2022,16/03/2022,"The Chubb Review examined the integrity and effectiveness of ACCUs, leading to changes in market perceptions and policy adjustments."
+2021,56,European Cold Wave Impacting Energy Demand,2021.01.01-2021.02.28,weather,1/01/2021,28/02/2021,14/02/2021,"A severe cold wave across Europe significantly increased heating demand, leading to higher carbon emissions and increased EU ETS allowance prices."
+2022,57,Drought in Northern Europe Reduces Hydropower Production,2022.05.01-2022.08.31,weather,1/05/2022,31/08/2022,1/07/2022,"A prolonged drought in Northern Europe led to reduced hydropower generation, increasing reliance on fossil fuels and driving up EU ETS carbon prices."
+2023,58,2023 European Heatwave Impacting Nuclear and Coal Power Generation,2023.07.01-2023.08.31,weather,1/07/2023,31/08/2023,1/08/2023,"A severe heatwave affected the cooling capacities of nuclear and coal power plants across Europe, leading to increased carbon intensity and higher EU ETS prices."
+2024,59,Winter Storms Disrupt Energy Infrastructure in Central Europe,2024.12.01-2025.01.31,weather,1/12/2024,31/01/2025,31/12/2024,"Severe winter storms in Central Europe disrupted energy infrastructure, leading to increased use of backup fossil fuel plants and a spike in EU ETS prices."
+2021,60,Introduction of Auctioning in NZ ETS,2021.03.17-2021.03.17,carbon market,17/03/2021,17/03/2021,17/03/2021,"Auctioning is introduced in the New Zealand Emissions Trading Scheme, allowing the government to control the supply of NZUs and impacting market prices."
+2022,61,Reduction in NZ ETS Cap,2022.01.01-2022.12.31,carbon market,1/01/2022,31/12/2022,1/07/2022,"The New Zealand government reduces the cap on emissions for the NZ ETS, tightening the supply of NZUs and driving up prices."
+2025,62,NZ ETS Reform for Inclusion of Agricultural Sector,2025.01.01-2025.12.31,carbon market,1/01/2025,31/12/2025,1/07/2025,"Reforms are implemented to include the agricultural sector in the NZ ETS, significantly increasing demand for NZUs."
+2020,63,Introduction of Fixed Price Option in NZ ETS,2020.06.01-2020.06.30,carbon market,1/06/2020,30/06/2020,15/06/2020,"The New Zealand government introduces a fixed price option to provide cost certainty to participants in the NZ ETS, influencing market behavior."
+2023,64,Revisions to Free Allocation Rules in NZ ETS,2023.04.01-2023.06.30,carbon market,1/04/2023,30/06/2023,15/05/2023,"Changes to the free allocation rules are implemented, affecting the number of NZUs allocated to emissions-intensive, trade-exposed industries."
