@@ -542,7 +542,7 @@ run_and_save_tvp_var <- function(asym_series, suffix) {
 
 # Run TVP-VAR and generate plots for both returns and volatility
 DCA_return <- run_and_save_tvp_var(asym_return, "r")
-DCA_vol <- run_and_save_tvp_var(asym_vol, "v")
+#DCA_vol <- run_and_save_tvp_var(asym_vol, "v")
 
 # Save the TCI series from DCA_return for use in chart below, create a dataframe for the event study
 TCI_asym_return <- as.data.frame(DCA_return[[1]]$TCI)
@@ -587,17 +587,17 @@ events_study_df$StartDate <- pmax(events_study_df$StartDate, min(TCI_asym_return
 events_study_df <- events_study_df %>%
   mutate(
     Midpoint = as.Date((as.numeric(StartDate) + as.numeric(EndDate)) / 2, origin = "1970-01-01"),  # Midpoint for event label positioning
-    LabelY = rep(seq(35, 40, length.out = n()), length.out = n())  # Alternating y positions for labels to avoid overlap
+    LabelY = rep(seq(30, 50, length.out = n()), length.out = n())  # Alternating y positions for labels to avoid overlap
   )
 
 # Create the plot
 ggplot() + 
   # This adds shaded areas (rectangles) representing the time periods of different events in the event study.
-  geom_rect(data = events_study_df, aes(xmin = pmax(StartDate, min(TCI_asym_return$Date)), xmax = pmin(EndDate, max(TCI_asym_return$Date)), ymin = 0, ymax = 40, fill = Category), alpha = 0.2) +  
+  geom_rect(data = events_study_df, aes(xmin = pmax(StartDate, min(TCI_asym_return$Date)), xmax = pmin(EndDate, max(TCI_asym_return$Date)), ymin = 0, ymax = 50, fill = Category), alpha = 0.2) +  
   
   # Adding vertical lines at the StartDate and EndDate of each event.
-  geom_segment(data = events_study_df, aes(x = StartDate, xend = StartDate, y = 0, yend = 40), linetype = "solid", color = "grey", size = 0.25, alpha = 0.25) +  
-  geom_segment(data = events_study_df, aes(x = EndDate, xend = EndDate, y = 0, yend = 40), linetype = "solid", color = "grey", size = 0.25, alpha = 0.25) +  
+  geom_segment(data = events_study_df, aes(x = StartDate, xend = StartDate, y = 0, yend = 50), linetype = "solid", color = "grey", size = 0.25, alpha = 0.25) +  
+  geom_segment(data = events_study_df, aes(x = EndDate, xend = EndDate, y = 0, yend = 50), linetype = "solid", color = "grey", size = 0.25, alpha = 0.25) +  
   
   # Placing event numbers at the midpoint of the event window for easier identification.
   geom_text(data = events_study_df, aes(x = Midpoint, y = LabelY, label = EventNumber), angle = 90, vjust = 0.5, hjust = 0) +  
@@ -640,7 +640,7 @@ ggplot() +
   
   # Setting the x-axis and y-axis limits and formats.
   scale_x_date(limits = c(min(TCI_asym_return$Date), max(TCI_asym_return$Date)), date_breaks = "1 year", date_labels = "%Y") +
-  scale_y_continuous(limits = c(0, 40))
+  scale_y_continuous(limits = c(0, 50))
 
 # Save the plot as a PNG
 ggsave(file.path(Asym, paste0("TCI_Asymmetric_with_events_r", ".png")), width = 8, height = 6, dpi = 300, bg = "white")
