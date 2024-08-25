@@ -34,19 +34,22 @@ vol_zoo <- zoo(vol_df[, -1], order.by = as.Date(vol_df$Date))
 ## Data Cleaning ##
 #----------------------------------
 
+# Limit to only EUA, NZU, HBEA, and CCA
+return_zoo <- return_zoo[, c("EUA", "NZU", "HBEA", "CCA")]
+
 # If there are any NAs or infinite values,  removing or imputing them
-#return_zoo <- na.omit(return_zoo)  # Removes entire rows where any NA values are present
+return_zoo <- na.omit(return_zoo)  # Removes entire rows where any NA values are present
 
-# Adapt any remaining NAs or infinite values to 0 in the data
-return_zoo <- na.fill(return_zoo, fill = 0)
+#Adapt any remaining NAs or infinite values to 0 in the data
+# return_zoo <- na.fill(return_zoo, fill = 0)
 
-# Replace infinite values with 0
-return_zoo[is.infinite(return_zoo)] <- 0
+# # Replace infinite values with 0
+# return_zoo[is.infinite(return_zoo)] <- 0
 
-## Ensure there are no NAs or infinite values ##
-summary(return_zoo)
-any(is.na(return_zoo))
-any(is.infinite(return_zoo))
+# ## Ensure there are no NAs or infinite values ##
+# summary(return_zoo)
+# any(is.na(return_zoo))
+# any(is.infinite(return_zoo))
 
 #----------------------------------
 

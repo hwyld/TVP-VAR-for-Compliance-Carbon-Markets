@@ -34,8 +34,15 @@ vol_zoo <- zoo(vol_df[, -1], order.by = as.Date(vol_df$Date))
 ## Initial Data Cleaning ##
 
 #------------------------------------------------------------------------------------------------
-# If there are any NAs or infinite values,  removing or imputing them
+# If there are any NAs or infinite values, removing or imputing them
 #return_zoo <- na.omit(return_zoo)  # Removes entire rows where any NA values are present
+
+# Define the start date
+start_date <- as.Date("2010-01-10")
+
+# Trim data to start from the specified start date to form a 2 variable system
+return_zoo <- window(return_zoo, start = start_date)
+vol_zoo <- window(vol_zoo, start = start_date)
 
 # Adapt any remaining NAs or infinite values to 0 in the data
 #return_zoo <- na.fill(return_zoo, fill = 0)
@@ -44,111 +51,114 @@ vol_zoo <- zoo(vol_df[, -1], order.by = as.Date(vol_df$Date))
 #return_zoo[is.infinite(return_zoo)] <- 0
 
 ## Ensure there are no NAs or infinite values ##
-#summary(return_zoo)
-#any(is.na(return_zoo))
-#any(is.infinite(return_zoo))
+summary(return_zoo)
+any(is.na(return_zoo))
+any(is.infinite(return_zoo))
+length(return_zoo)
+length_without_na <- sum(!is.na(return_zoo$WCA))
+
 #------------------------------------------------------------------------------------------------
 
 ## VAR model estimation with rolling windows ## TEST 
 
 #### Using the ConnectednessApproach package ####
 
-#----------------------------------
-# Load the necessary library
-library(vars)
+# #----------------------------------
+# # Load the necessary library
+# library(vars)
 
-# Forecast horizon
-h = 10
+# # Forecast horizon
+# h = 10
 
-# Window size
-window_size = 100
+# # Window size
+# window_size = 100
 
-# Initialize the TCI DataFrame
-TCI_df <- data.frame(Date = as.Date(character()), TCI = numeric(), stringsAsFactors = FALSE)
+# # Initialize the TCI DataFrame
+# TCI_df <- data.frame(Date = as.Date(character()), TCI = numeric(), stringsAsFactors = FALSE)
 
-## Create data for the first window
-# Subset the data for the first window (first 50 periods)
-window_data_1 <- return_zoo[1:window_size, ]
+# ## Create data for the first window
+# # Subset the data for the first window (first 50 periods)
+# window_data_1 <- return_zoo[1:window_size, ]
 
-## Clean window_data_1
-# Remove any variables with zero values
-window_data_1 <- window_data_1[, colSums(window_data_1) != 0]
+# ## Clean window_data_1
+# # Remove any variables with zero values
+# window_data_1 <- window_data_1[, colSums(window_data_1) != 0]
 
-# Only keep variables that have complete data for the entire window
-window_data_1 <- window_data_1[, colSums(is.na(window_data_1)) == 0]
+# # Only keep variables that have complete data for the entire window
+# window_data_1 <- window_data_1[, colSums(is.na(window_data_1)) == 0]
     
-# If no variables are left after filtering, skip to the next window
-if (ncol(window_data_1) == 0) next
+# # If no variables are left after filtering, skip to the next window
+# if (ncol(window_data_1) == 0) next
 
 
-## Method 1 - Using the vars package for model estimation and manually calculating TCI ##
-# Determine the optimal lag length using VARselect
-lag_selection <- VARselect(window_data_1, lag.max = h)
+# ## Method 1 - Using the vars package for model estimation and manually calculating TCI ##
+# # Determine the optimal lag length using VARselect
+# lag_selection <- VARselect(window_data_1, lag.max = h)
 
-# Extract the optimal lag based on the Schwarz Criterion (SC)
-optimal_lag <- lag_selection$selection["SC(n)"]
+# # Extract the optimal lag based on the Schwarz Criterion (SC)
+# optimal_lag <- lag_selection$selection["SC(n)"]
 
-# test
-var_model_window_1 <- vars::VAR(window_data_1, p = optimal_lag)
+# # test
+# var_model_window_1 <- vars::VAR(window_data_1, p = optimal_lag)
 
-# Compute the FEVD
-fevd_result_window_1 <- fevd(var_model_window_1, n.ahead = h)
+# # Compute the FEVD
+# fevd_result_window_1 <- fevd(var_model_window_1, n.ahead = h)
 
-# Initialize variables for calculations
-num_variables <- ncol(window_data_1)
-spillover_matrix <- matrix(0, num_variables, num_variables)
+# # Initialize variables for calculations
+# num_variables <- ncol(window_data_1)
+# spillover_matrix <- matrix(0, num_variables, num_variables)
 
-# Calculate the spillover matrix
-for (i in 1:num_variables) {
-  for (j in 1:num_variables) {
-    spillover_matrix[i, j] <- sum(fevd_result_window_1[[i]][, j])
-  }
-}
+# # Calculate the spillover matrix
+# for (i in 1:num_variables) {
+#   for (j in 1:num_variables) {
+#     spillover_matrix[i, j] <- sum(fevd_result_window_1[[i]][, j])
+#   }
+# }
 
-# Normalize the spillover matrix (ensure each row sums to 1)
-spillover_matrix <- sweep(spillover_matrix, 1, rowSums(spillover_matrix), "/")
+# # Normalize the spillover matrix (ensure each row sums to 1)
+# spillover_matrix <- sweep(spillover_matrix, 1, rowSums(spillover_matrix), "/")
 
-# Calculate the Total Connectedness Index (TCI)
-off_diag_sum_window_1 <- sum(spillover_matrix) - sum(diag(spillover_matrix))
-total_variance <- sum(spillover_matrix)
-tci_window_1 <- (off_diag_sum_window_1 / total_variance) * 100
+# # Calculate the Total Connectedness Index (TCI)
+# off_diag_sum_window_1 <- sum(spillover_matrix) - sum(diag(spillover_matrix))
+# total_variance <- sum(spillover_matrix)
+# tci_window_1 <- (off_diag_sum_window_1 / total_variance) * 100
 
-# Output the Spillover Index
-tci_window_1
+# # Output the Spillover Index
+# tci_window_1
 
-## Method 2 - Using the vars package for model estimation and the ConnectednessApporach for calculating TCI ##
-# From https://gabauerdavid.github.io/ConnectednessApproach/Rpackage #
+# ## Method 2 - Using the vars package for model estimation and the ConnectednessApporach for calculating TCI ##
+# # From https://gabauerdavid.github.io/ConnectednessApproach/Rpackage #
 
-NAMES = colnames(window_data_1)
-nlag = optimal_lag
-k = ncol(window_data_1)
-fit = vars::VAR(window_data_1, p=nlag)
-B = t(matrix(unlist(coefficients(fit)), ncol=4))[,1:(k*nlag)]
-Q = summary(fit)$covres
-colnames(Q) = rownames(Q) = NAMES
-kable(Q)
+# NAMES = colnames(window_data_1)
+# nlag = optimal_lag
+# k = ncol(window_data_1)
+# fit = vars::VAR(window_data_1, p=nlag)
+# B = t(matrix(unlist(coefficients(fit)), ncol=4))[,1:(k*nlag)]
+# Q = summary(fit)$covres
+# colnames(Q) = rownames(Q) = NAMES
+# kable(Q)
 
-dca = TimeConnectedness(B, Q, nfore=h)
-kable(dca$TABLE)
+# dca = TimeConnectedness(B, Q, nfore=h)
+# kable(dca$TABLE)
 
-# Save residual tests
-residuals = residuals(fit)
+# # Save residual tests
+# residuals = residuals(fit)
 
 
-## Method 3 - Using the vars package for model estimation and the ConnectednessApporach for calculating TCI ##
-# From https://gabauerdavid.github.io/ConnectednessApproach/Rpackage #
-# Connectedness Approach
-dca1 = ConnectednessApproach(window_data_1,
-                            nlag=optimal_lag,
-                            nfore=h, 
-                            model="VAR",
-                            corrected=TRUE,
-                            window.size=NULL)
+# ## Method 3 - Using the vars package for model estimation and the ConnectednessApporach for calculating TCI ##
+# # From https://gabauerdavid.github.io/ConnectednessApproach/Rpackage #
+# # Connectedness Approach
+# dca1 = ConnectednessApproach(window_data_1,
+#                             nlag=optimal_lag,
+#                             nfore=h, 
+#                             model="VAR",
+#                             corrected=TRUE,
+#                             window.size=NULL)
 
-kable(dca1$TABLE)
+# kable(dca1$TABLE)
 
-# Store last date from window_data_1 and TCI in TCI_df
-TCI_df <- rbind(TCI_df, data.frame(Date = index(window_data_1)[window_size], TCI = dca$TCI))
+# # Store last date from window_data_1 and TCI in TCI_df
+# TCI_df <- rbind(TCI_df, data.frame(Date = index(window_data_1)[window_size], TCI = dca$TCI))
 
 
 ### 3 options here 
@@ -165,8 +175,8 @@ library(ConnectednessApproach)
 # Forecast horizon
 h <- 10
 
-# Window size
-window_size <- 100
+# Window size (max 75 allows the WCA to be captured)
+window_size <- 50
 
 # Initialize DataFrames for each method
 TCI_df_Method1 <- data.frame(Date = as.Date(character()), TCI = numeric(), Model_Success = integer(), Num_Variables = integer(), Serial_Autocorrelation_p_value = numeric(), Stability = logical(), Normality_p_value = numeric(), stringsAsFactors = FALSE)
@@ -214,8 +224,9 @@ for (start_index in 1:(nrow(return_zoo) - window_size + 1)) {
     
     if (is.null(lag_selection)) next
     
-    optimal_lag <- lag_selection$selection["SC(n)"]
-    
+    #optimal_lag <- lag_selection$selection["SC(n)"]
+    optimal_lag = 1 # for testing
+
     #### Method 1 ####
     var_model_Method1 <- tryCatch({
         vars::VAR(window_data, p = optimal_lag, type = "const")
@@ -353,8 +364,11 @@ failure_stats_df <- data.frame(
   Proportion_Normality_Failed = sapply(failure_stats_list, function(x) x$Proportion_Normality_Failed)
 )
 
-# Export the results to a CSV file
-write.csv(failure_stats_df, file = "failure_stats.csv", row.names = FALSE)
+# Create file name based on h and window_size
+file_name <- paste0("failure_stats_h", h, "_window", window_size, ".csv")
+
+# Export the results to a CSV file using the dynamically created file name
+write.csv(failure_stats_df, file = file_name, row.names = FALSE)
 
 # Save results
 write.csv(TCI_df_Method1, file = "TCI_results_Method1.csv", row.names = FALSE)
@@ -362,19 +376,19 @@ write.csv(TCI_df_Method2, file = "TCI_results_Method2.csv", row.names = FALSE)
 write.csv(TCI_df_Method3, file = "TCI_results_Method3.csv", row.names = FALSE)
 
 # Save Spillover Matrices
-save(Spillover_Matrices_Method1, file = "Spillover_Matrices_Method1.RData")
-save(Spillover_Matrices_Method2, file = "Spillover_Matrices_Method2.RData")
-save(Spillover_Matrices_Method3, file = "Spillover_Matrices_Method3.RData")
+# save(Spillover_Matrices_Method1, file = "Spillover_Matrices_Method1.RData")
+# save(Spillover_Matrices_Method2, file = "Spillover_Matrices_Method2.RData")
+# save(Spillover_Matrices_Method3, file = "Spillover_Matrices_Method3.RData")
 
-# Average spillover matrices
-average_spillover_matrix_Method1 <- Reduce("+", lapply(Spillover_Matrices_Method1, function(x) x$Spillover_Matrix)) / length(Spillover_Matrices_Method1)
-average_spillover_matrix_Method2 <- Reduce("+", lapply(Spillover_Matrices_Method2, function(x) x$Spillover_Matrix)) / length(Spillover_Matrices_Method2)
-average_spillover_matrix_Method3 <- Reduce("+", lapply(Spillover_Matrices_Method3, function(x) x$Spillover_Matrix)) / length(Spillover_Matrices_Method3)
+# # Average spillover matrices
+# average_spillover_matrix_Method1 <- Reduce("+", lapply(Spillover_Matrices_Method1, function(x) x$Spillover_Matrix)) / length(Spillover_Matrices_Method1)
+# average_spillover_matrix_Method2 <- Reduce("+", lapply(Spillover_Matrices_Method2, function(x) x$Spillover_Matrix)) / length(Spillover_Matrices_Method2)
+# average_spillover_matrix_Method3 <- Reduce("+", lapply(Spillover_Matrices_Method3, function(x) x$Spillover_Matrix)) / length(Spillover_Matrices_Method3)
 
-# Output the average spillover matrices
-average_spillover_matrix_Method1
-average_spillover_matrix_Method2
-average_spillover_matrix_Method3
+# # Output the average spillover matrices
+# average_spillover_matrix_Method1
+# average_spillover_matrix_Method2
+# average_spillover_matrix_Method3
 
 # Combine the TCI DataFrames for plotting
 
@@ -390,6 +404,12 @@ TCI_df <- merge(TCI_df, rename_with(TCI_Method3, ~ paste0(., " - 3"), -Date), by
 
 # Remove any columns where NA 
 TCI_df <- TCI_df[, colSums(is.na(TCI_df)) < 3]
+
+# Create file name based on h and window_size
+file_name <- paste0("TCI_plot_h", h, "_window", window_size, ".csv")
+
+# Export the results to a CSV file using the dynamically created file name
+write.csv(TCI_df, file = file_name, row.names = FALSE)
 
 # Assuming TCI_df has columns: Date, `TVI - 1`, `TCI - 2`, `TCI - 3`, `Num_Variables - 1`, `Num_Variables - 2`, `Num_Variables - 3`
 
@@ -415,6 +435,12 @@ ggplot(TCI_df, aes(x = Date)) +
     legend.position = "bottom",
     legend.title = element_blank()
   )
+
+# Create file name based on h and window_size
+file_name <- paste0("TCI_plot_h", h, "_window", window_size, ".png")
+
+# Export the plot with a white background using the dynamically created file name
+ggsave(file_name, bg = "white")
 
 # Plot serial autocorrelation p-values
 
@@ -446,6 +472,44 @@ ggplot(HGTest_df, aes(x = Date)) +
     legend.position = "bottom",
     legend.title = element_blank()
   )
+
+# Export the plot
+ggsave("Serial_Autocorrelation_p_values.png")
+
+# Plot normality test p-values
+
+# Adapt TCI_df_Method1 to only include TCI, number of variables
+JBTest_Method1 <- TCI_df_Method1[, c("Date", "TCI","Normality_p_value")]
+JBTest_Method2 <- TCI_df_Method2[, c("Date", "TCI","Normality_p_value")]
+JBTest_Method3 <- TCI_df_Method3[, c("Date", "TCI","Normality_p_value")]
+
+# Merge all 3 TCI DataFrames, naming the columns appropriately
+JBTest_df <- merge(JBTest_Method1, JBTest_Method2, by = "Date", suffixes = c(" - 1", " - 2"))
+# Merge TCI_df with TCI_Method3, adding suffix " - 3" to TCI_Method3 columns in one line
+JBTest_df <- merge(JBTest_df, rename_with(JBTest_Method3, ~ paste0(., " - 3"), -Date), by = "Date")
+
+# Remove any columns where the serial autocorrelation p-value is NA for all methods
+JBTest_df <- JBTest_df[, colSums(is.na(JBTest_df)) < 3]
+
+# Plot normality p-values and TCI on the same plot
+ggplot(JBTest_df, aes(x = Date)) +
+  geom_line(aes(y = `Normality_p_value - 1`, color = "Normality - 1")) +
+  geom_line(aes(y = `Normality_p_value - 2`, color = "Normality - 2")) +
+  
+  geom_hline(yintercept = 0.05, linetype = "dashed", color = "black") +
+  labs(title = "Normality p-values Over Time",
+       x = "Date",
+       y = "Normality p-value") +
+  scale_color_manual(values = c("Normality - 1" = "blue", "Normality - 2" = "red", "Normality - 3" = "green")) +
+  theme_minimal() +
+  theme(
+    legend.position = "bottom",
+    legend.title = element_blank()
+  )
+
+# Export the plot
+ggsave("JB Test_plot.png")
+
 #----------------------------------
 
 

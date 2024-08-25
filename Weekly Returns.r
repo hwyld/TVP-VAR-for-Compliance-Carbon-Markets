@@ -225,9 +225,13 @@ volatility <- xts(volatility, order.by = first_day_of_week)
 
 ### SUBSET DATA ###
 #---------------------------------------
-# Trim the data to start when NZU data set begins on 05/01/2010 ending on 31/12/2023
-Research_Data_weekly_returns <- weekly_returns["2010-01-05/2024-01-02"]
-Research_Data_weekly_volatility <- volatility["2010-01-05/2024-01-02"]
+# Trim the data to start when NZU data set begins on 05/01/2010
+# Research_Data_weekly_returns <- weekly_returns["2010-01-05/"]
+# Research_Data_weekly_volatility <- volatility["2010-01-05/"]
+
+# No filter
+Research_Data_weekly_returns <- weekly_returns
+Research_Data_weekly_volatility <- volatility
 
 # Save the Date indexes for later use
 Research_Data_weekly_returns_dates <- index(Research_Data_weekly_returns)
@@ -539,13 +543,46 @@ plot <- ggplot(Research_Data_annualised_weekly_volatility_long, aes(x = Date, y 
 # Export the plot to a html file
 htmlwidgets::saveWidget(plotly::ggplotly(plot), "Weekly_Volatility_Plot.html")
 
+## Pearson correlation across all series ##
+
+# Plot heatmap of correlation matrix
+# Create a correlation matrix for the weekly returns
+correlation_matrix_returns <- cor(Research_Data_weekly_returns, use = "pairwise.complete.obs")
+correlation_matrix_volatility <- cor(Research_Data_weekly_volatility, use = "pairwise.complete.obs")
+
+# Convert the correlation matrix to a data frame
+correlation_matrix_returns_df <- as.data.frame(correlation_matrix_returns)
+correlation_matrix_volatility_df <- as.data.frame(correlation_matrix_volatility)
+
+# Set the row and column names
+row.names(correlation_matrix_returns_df) <- colnames(Research_Data_weekly_returns)
+colnames(correlation_matrix_returns_df) <- colnames(Research_Data_weekly_returns)
+
+row.names(correlation_matrix_volatility_df) <- colnames(Research_Data_weekly_volatility)
+colnames(correlation_matrix_volatility_df) <- colnames(Research_Data_weekly_volatility)
+
+# Convert the correlation matrix to a matrix
+correlation_matrix_returns <- as.matrix(correlation_matrix_returns_df)
+correlation_matrix_volatility <- as.matrix(correlation_matrix_volatility_df)
+
+# Plot the heatmap for the correlation matrix
+heatmap(correlation_matrix_returns, col = colorRampPalette(c("blue", "white", "red"))(100), scale = "none", main = "Correlation Matrix for Weekly Returns")
+heatmap(correlation_matrix_volatility, col = colorRampPalette(c("blue", "white", "red"))(100), scale = "none", main = "Correlation Matrix for Weekly Volatility")
+
+#---------------------------------------
+
+
 
 ## Data Export ##
 #---------------------------------------
 
 # Trim data to start when NZU data set begins on 05/01/2010
-Research_Data_weekly_returns <- Research_Data_weekly_returns["2010-01-16/"]
-Research_Data_weekly_volatility <- Research_Data_weekly_volatility["2010-01-16/"]
+#Research_Data_weekly_returns_dates <- Research_Data_weekly_returns_dates["2010-01-16/"]
+#Research_Data_weekly_volatility_dates <- Research_Data_weekly_volatility_dates["2010-01-16/"]
+
+# trim data to start when NZU data set begins on 05/01/2010
+# Research_Data_weekly_returns <- Research_Data_weekly_returns["2010-01-16/"]
+# Research_Data_weekly_volatility <- Research_Data_weekly_volatility["2010-01-16/"]
 
 # Convert xts object to a data frame
 Research_Data_weekly_returns_df <- as.data.frame(Research_Data_weekly_returns)
@@ -558,7 +595,6 @@ Research_Data_weekly_volatility_df$Date <- Research_Data_weekly_volatility_dates
 # Move the Date column to the first position
 Research_Data_weekly_returns_df <- Research_Data_weekly_returns_df[, c(ncol(Research_Data_weekly_returns_df), 1:(ncol(Research_Data_weekly_returns_df)-1))]
 Research_Data_weekly_volatility_df <- Research_Data_weekly_volatility_df[, c(ncol(Research_Data_weekly_volatility_df), 1:(ncol(Research_Data_weekly_volatility_df)-1))]
-
 
 # Export the data to CSV files
 write.csv(Research_Data_weekly_returns_df, "Research_Data_weekly_returns.csv", row.names = FALSE)
