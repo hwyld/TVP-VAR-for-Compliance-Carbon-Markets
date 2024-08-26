@@ -226,12 +226,12 @@ volatility <- xts(volatility, order.by = first_day_of_week)
 ### SUBSET DATA ###
 #---------------------------------------
 # Trim the data to start when NZU data set begins on 05/01/2010
-# Research_Data_weekly_returns <- weekly_returns["2010-01-05/"]
-# Research_Data_weekly_volatility <- volatility["2010-01-05/"]
+Research_Data_weekly_returns <- weekly_returns["2018-01-08/"]
+Research_Data_weekly_volatility <- volatility["2018-01-08/"]
 
 # No filter
-Research_Data_weekly_returns <- weekly_returns
-Research_Data_weekly_volatility <- volatility
+#Research_Data_weekly_returns <- weekly_returns
+#Research_Data_weekly_volatility <- volatility
 
 # Save the Date indexes for later use
 Research_Data_weekly_returns_dates <- index(Research_Data_weekly_returns)
@@ -467,7 +467,7 @@ plot <- ggplot(Research_Data_continuously_compounded_weekly_returns_long, aes(x 
   geom_line(aes(color = Series), size = 0.7) +
   facet_wrap(~ Series, scales = "free", ncol = 2) +  # Create a 2 by 2 grid
   labs(x = "Date", y = "Volatility") +
-  scale_color_manual(values = c("EU ETS" = "blue", "NZ ETS" = "green", "CA CaT" = "brown", "HB ETS" = "black")) +
+  ggtitle("Weekly Returns of Global Carbon Market Network") +  # Add title
   scale_x_date(date_breaks = "1 year", date_labels = "%Y") +  # Set x-axis to show yearly ticks
   theme_minimal() +
   theme(
@@ -484,6 +484,9 @@ plot <- ggplot(Research_Data_continuously_compounded_weekly_returns_long, aes(x 
 
 # Export the plot to a html file
 htmlwidgets::saveWidget(plotly::ggplotly(plot), "Weekly_Returns_Plot.html")
+
+# Export the plot to a png file
+ggsave("Weekly_Returns_Plot.png", plot, width = 12, height = 8, units = "in", dpi = 300)
 
 #---------------------------------------
 
@@ -518,14 +521,14 @@ p <- ggplot(Research_Data_annualised_weekly_volatility_long, aes(x = Date)) +
 # Convert the ggplot object to a plotly object
 plotly::ggplotly(p)
 
-# Seperate plots for each series
+# Separate plots for each series
 # Create 4 separate plots for each series and save them in the same file as a 2 by 2 grid
 plot <- ggplot(Research_Data_annualised_weekly_volatility_long, aes(x = Date, y = Weekly_Volatility)) +
   geom_line(aes(color = Series), size = 0.7) +
   facet_wrap(~ Series, scales = "free", ncol = 2) +  # Create a 2 by 2 grid
   labs(x = "Date", y = "Volatility") +
-  scale_color_manual(values = c("EU ETS" = "blue", "NZ ETS" = "green", "CA CaT" = "brown", "HB ETS" = "black")) +
   scale_x_date(date_breaks = "1 year", date_labels = "%Y") +  # Set x-axis to show yearly ticks
+  ggtitle("Weekly Volatility of Global Carbon Market Network") +  # Add title
   theme_minimal() +
   theme(
     legend.position = "none",
@@ -536,12 +539,16 @@ plot <- ggplot(Research_Data_annualised_weekly_volatility_long, aes(x = Date, y 
     axis.line.x.bottom = element_line(color = "black", size = 0.5),  # Add x-axis line
     axis.line.y.left = element_line(color = "black", size = 0.5),  # Add y-axis line
     axis.ticks = element_line(color = "black", size = 0.5),  # Add axis ticks
-    axis.ticks.length = unit(0.2, "cm")  # Length of the ticks
+    axis.ticks.length = unit(0.2, "cm"),  # Length of the ticks
+    plot.title = element_text(size = 20, face = "bold", hjust = 0.5)  # Style the title
   )
 
 
 # Export the plot to a html file
 htmlwidgets::saveWidget(plotly::ggplotly(plot), "Weekly_Volatility_Plot.html")
+
+# Export the plot to a png file
+ggsave("Weekly_Volatility_Plot.png", plot, width = 12, height = 8, units = "in", dpi = 300)
 
 ## Pearson correlation across all series ##
 
