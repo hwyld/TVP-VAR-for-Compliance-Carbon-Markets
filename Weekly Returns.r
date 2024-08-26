@@ -226,12 +226,12 @@ volatility <- xts(volatility, order.by = first_day_of_week)
 ### SUBSET DATA ###
 #---------------------------------------
 # Trim the data to start when NZU data set begins on 05/01/2010
-Research_Data_weekly_returns <- weekly_returns["2018-01-08/"]
-Research_Data_weekly_volatility <- volatility["2018-01-08/"]
+# Research_Data_weekly_returns <- weekly_returns["2018-01-08/"]
+# Research_Data_weekly_volatility <- volatility["2018-01-08/"]
 
 # No filter
-#Research_Data_weekly_returns <- weekly_returns
-#Research_Data_weekly_volatility <- volatility
+Research_Data_weekly_returns <- weekly_returns
+Research_Data_weekly_volatility <- volatility
 
 # Save the Date indexes for later use
 Research_Data_weekly_returns_dates <- index(Research_Data_weekly_returns)
