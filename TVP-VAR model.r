@@ -239,6 +239,17 @@ dca = ConnectednessApproach(vol_zoo,
                             connectedness="Time",
                             VAR_config=list(TVPVAR=list(kappa1=forgetting_factor, kappa2=decay_factor, prior="BayesPrior"))) # TVP-VAR model with forgetting factor and decay factor as specified
 
+dca$config
+
+## Model Testing ##
+
+#----------------------------------
+
+# Test the model residuals for normality
+# Shapiro-Wilk test for normality
+shapiro.test(dca$residuals)
+
+
 
 ## EXTRACT DATA ##
 
@@ -516,6 +527,28 @@ run_and_save_tvp_var <- function(asym_series, suffix) {
                          out = file.path(Asym, paste0("FEVD_", spec[i], "_", suffix, ".html")))
   }
 
+  ## Combine HTML files ##
+  html_lines <- list()
+  for (i in 1:length(FEVD_list)) {
+    html_lines[[i]] <- readLines(file.path(Asym, paste0("FEVD_", spec[i], "_", suffix, ".html")))
+  }
+
+  # Insert captions for each specification
+  captions <- c('<caption style="text-align:left;">Panel A: All connectedness (%)</caption>',
+                '<caption style="text-align:left;">Panel B: Positive connectedness (%)</caption>',
+                '<caption style="text-align:left;">Panel C: Negative connectedness (%)</caption>')
+
+  for (i in 1:length(html_lines)) {
+    table_start_index <- which(grepl("<table", html_lines[[i]], fixed = TRUE))[1]
+    html_lines[[i]] <- append(html_lines[[i]], captions[i], after = table_start_index)
+  }
+
+  # Combine HTML tables
+  combined_html_lines <- c(html_lines[[1]], "<br><br>", html_lines[[2]], "<br><br>", html_lines[[3]])
+
+  # Add final caption at the bottom
+  caption_connectedness <- '<tr><td colspan="7" style="text-align:left;">Aligning with Adekoya, Akinseye, Antonakakis, Chatziantoniou, Gabauer, and Oliyide (2021), this analysis uses first-order VARs (p = 1) as selected by Schwarz information criterion, with 10-step-ahead forecasts (H = 10).</td></tr>'
+
   ## Plots ##
   # Total Connectedness Index (TCI)
   pdf(file.path(Asym, paste0("TCI_Asymmetric_", suffix, ".pdf")), width = 8, height = 6)
@@ -611,8 +644,8 @@ ggplot() +
   # Plotting the line for the 'Positive' series with a dashed line.
   geom_line(data = TCI_asym_return, aes(x = Date, y = Positive, color = "Positive"), linetype = "dashed", size = 0.8) +
   
-  # Plotting the line for the 'Negative' series with a dotted line.
-  geom_line(data = TCI_asym_return, aes(x = Date, y = Negative, color = "Negative"), linetype = "dotted", size = 0.8) +
+  # Plotting the line for the 'Negative' series with a dashed line.
+  geom_line(data = TCI_asym_return, aes(x = Date, y = Negative, color = "Negative"), linetype = "dashed", size = 0.8) +
   
   # Adding labels and title to the plot.
   labs(x = "Year", y = "Total Connectedness Index (TCI)", title = "Total Asymmetric Connectedness Event Study" )  +
@@ -624,7 +657,7 @@ ggplot() +
   scale_fill_manual(values = category_colors, name = "Category") +  
   
   # Assigning custom colors to the 'All', 'Positive', and 'Negative' lines.
-  scale_color_manual(values = c("All" = "black", "Positive" = "blue", "Negative" = "red")) +
+  scale_color_manual(values = c("All" = "black", "Positive" = "blue", "Negative" = "dark red")) +
   
   # Customizing the theme for the plot.
   theme(
