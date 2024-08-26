@@ -466,7 +466,7 @@ plotly::ggplotly(a)
 plot <- ggplot(Research_Data_continuously_compounded_weekly_returns_long, aes(x = Date, y = Weekly_Return)) +
   geom_line(aes(color = Series), size = 0.7) +
   facet_wrap(~ Series, scales = "free", ncol = 2) +  # Create a 2 by 2 grid
-  labs(x = "Date", y = "Volatility") +
+  labs(x = "Date", y = "Returns") +
   ggtitle("Weekly Returns of Global Carbon Market Network") +  # Add title
   scale_x_date(date_breaks = "1 year", date_labels = "%Y") +  # Set x-axis to show yearly ticks
   theme_minimal() +
@@ -479,7 +479,8 @@ plot <- ggplot(Research_Data_continuously_compounded_weekly_returns_long, aes(x 
     axis.line.x.bottom = element_line(color = "black", size = 0.5),  # Add x-axis line
     axis.line.y.left = element_line(color = "black", size = 0.5),  # Add y-axis line
     axis.ticks = element_line(color = "black", size = 0.5),  # Add axis ticks
-    axis.ticks.length = unit(0.2, "cm")  # Length of the ticks
+    axis.ticks.length = unit(0.2, "cm"),  # Length of the ticks
+    plot.title = element_text(size = 20, face = "bold", hjust = 0.5)  # Style the title
   )
 
 # Export the plot to a html file
