@@ -189,7 +189,7 @@ library(ConnectednessApproach)
 h <- 10
 
 # Window size (max 75 allows the WCA to be captured)
-window_size <- 150
+window_size <- 100
 
 # Initialize DataFrames for each method
 TCI_df_Method1 <- data.frame(Date = as.Date(character()), TCI = numeric(), Model_Success = integer(), Num_Variables = integer(), Serial_Autocorrelation_p_value = numeric(), Stability = logical(), Normality_p_value = numeric(), stringsAsFactors = FALSE)
@@ -424,11 +424,11 @@ file_name <- paste0("TCI_plot_h", h, "_window", window_size, ".csv")
 # Export the results to a CSV file using the dynamically created file name
 write.csv(TCI_df, file = file_name, row.names = FALSE)
 
-# Assuming TCI_df has columns: Date, `TVI - 1`, `TCI - 2`, `TCI - 3`, `Num_Variables - 1`, `Num_Variables - 2`, `Num_Variables - 3`
+# Assuming TCI_df has columns: Date, `TCI - 1`, `TCI - 2`, `TCI - 3`, `Num_Variables - 1`, `Num_Variables - 2`, `Num_Variables - 3`
 
 # Plot the 3 connectedness measures on the same plot, scale is 0-100
 ggplot(TCI_df, aes(x = Date)) +
-  geom_line(aes(y = `TCI - 1`, color = "TVI - 1")) +
+  geom_line(aes(y = `TCI - 1`, color = "TCI - 1")) +
   geom_line(aes(y = `TCI - 2`, color = "TCI - 2")) +
   geom_line(aes(y = `TCI - 3`, color = "TCI - 3")) +
   geom_bar(aes(y = `Num_Variables - 1` * 100 / max(`Num_Variables - 1`), fill = "Num_Variables - 1"), stat = "identity", alpha = 0.3) +
@@ -441,7 +441,7 @@ ggplot(TCI_df, aes(x = Date)) +
   ) +
   labs(title = "Total Connectedness Index Over Time",
        x = "Date") +
-  scale_color_manual(values = c("TVI - 1" = "blue", "TCI - 2" = "red", "TCI - 3" = "green")) +
+  scale_color_manual(values = c("TCI - 1" = "blue", "TCI - 2" = "red", "TCI - 3" = "green")) +
   scale_fill_manual(values = c("Num_Variables - 1" = "grey", "Num_Variables - 2" = "lightgrey", "Num_Variables - 3" = "darkgrey")) +
   theme_minimal() +
   theme(
@@ -487,7 +487,7 @@ ggplot(HGTest_df, aes(x = Date)) +
   )
 
 # Export the plot
-ggsave("Serial_Autocorrelation_p_values.png")
+ggsave("Serial_Autocorrelation_p_values.png",bg = "white")
 
 # Plot normality test p-values
 
@@ -521,7 +521,7 @@ ggplot(JBTest_df, aes(x = Date)) +
   )
 
 # Export the plot
-ggsave("JB Test_plot.png")
+ggsave("JB Test_plot.png", bg = "white")
 
 #----------------------------------
 
@@ -846,7 +846,7 @@ write.csv(TCI_df, file = file_name, row.names = FALSE)
 
 # Plot the 3 connectedness measures on the same plot, scale is 0-100
 ggplot(TCI_df, aes(x = Date)) +
-  geom_line(aes(y = `TCI - 1`, color = "TVI - 1")) +
+  geom_line(aes(y = `TCI - 1`, color = "TCI - 1")) +
   geom_line(aes(y = `TCI - 2`, color = "TCI - 2")) +
   geom_line(aes(y = `TCI - 3`, color = "TCI - 3")) +
   geom_bar(aes(y = `Num_Variables - 1` * 100 / max(`Num_Variables - 1`), fill = "Num_Variables - 1"), stat = "identity", alpha = 0.3) +
@@ -859,7 +859,7 @@ ggplot(TCI_df, aes(x = Date)) +
   ) +
   labs(title = "Total Connectedness Index Over Time",
        x = "Date") +
-  scale_color_manual(values = c("TVI - 1" = "blue", "TCI - 2" = "red", "TCI - 3" = "green")) +
+  scale_color_manual(values = c("TCI - 1" = "blue", "TCI - 2" = "red", "TCI - 3" = "green")) +
   scale_fill_manual(values = c("Num_Variables - 1" = "grey", "Num_Variables - 2" = "lightgrey", "Num_Variables - 3" = "darkgrey")) +
   theme_minimal() +
   theme(
@@ -940,3 +940,143 @@ ggplot(JBTest_df, aes(x = Date)) +
 
 # Export the plot
 ggsave("JB Test_plot.png")
+
+
+
+#### LOOP ACROSS MULTIPLE h AND WINDOW_SIZE VALUES ####
+
+# Define the lists of h and window_size values
+h_values <- c(5, 10, 15)
+window_size_values <- c(75, 100, 125)
+
+# Loop over each h and window_size combination
+for (h in h_values) {
+  for (window_size in window_size_values) {
+  
+    # Initialize DataFrame for the method
+    TCI_df_Method2 <- data.frame(Date = as.Date(character()), TCI = numeric(), Num_Variables = integer(), Model_Success = integer(), Serial_Autocorrelation_p_value = numeric(), Stability = logical(), Normality_p_value = numeric(), stringsAsFactors = FALSE)
+
+    # Initialize DataFrame to store spillover matrices
+    Spillover_Matrices_Method2 <- list()
+
+    # Ensure the index of the zoo object is unique
+    return_zoo <- return_zoo[!duplicated(index(return_zoo)), ]
+
+    # Start the rolling window process
+    for (start_index in 1:(nrow(return_zoo) - window_size + 1)) {
+        
+        # Define the end index for the current window
+        end_index <- start_index + window_size - 1
+        
+        # Subset the data for the current window
+        window_data <- return_zoo[start_index:end_index, ]
+        
+        # Extract the last date of this window for logging purposes
+        last_date <- index(window_data)[window_size]
+        
+        # Only keep variables that have complete data for the entire window
+        window_data <- window_data[, colSums(is.na(window_data)) == 0]
+        
+        # If no variables are left after filtering, skip to the next window
+        if (ncol(window_data) == 0) next
+        
+        # Record the number of columns (variables) in the cleaned window
+        num_variables <- ncol(window_data)
+        
+        # Determine the optimal lag length using VARselect
+        lag_selection <- tryCatch({
+            VARselect(window_data, lag.max = h, type = "const")
+        }, error = function(e) {
+            next
+        })
+        
+        if (is.null(lag_selection)) next
+        
+        # Set optimal lag (for testing purposes, using 1)
+        optimal_lag <- 1 
+
+        #### Method 2 ####
+        var_model_Method2 <- tryCatch({
+            vars::VAR(window_data, p = optimal_lag, type = "const")
+        }, error = function(e) {
+            return(NULL)
+        })
+        
+        if (!is.null(var_model_Method2)) {
+            # Using the ConnectednessApproach
+            fit <- var_model_Method2
+            B <- t(matrix(unlist(coefficients(fit)), ncol = num_variables))[,1:(num_variables * optimal_lag)]
+            Q <- summary(fit)$covres
+            dca <- TimeConnectedness(B, Q, nfore = h)
+            tci <- dca$TCI
+            
+            # Check residual diagnostics
+            serial_test <- serial.test(var_model_Method2, lags.bg = 1, type = "ES")
+            serial_p_value <- serial_test$serial$p.value
+            
+            stability <- all(roots(var_model_Method2) < 1)
+            
+            normality_test <- normality.test(var_model_Method2)
+            normality_p_value <- normality_test$jb.mul$JB$p.value
+            
+            # Store the results
+            TCI_df_Method2 <- rbind(TCI_df_Method2, data.frame(Date = last_date, TCI = tci, Num_Variables = num_variables, Model_Success = 1, Serial_Autocorrelation_p_value = serial_p_value, Stability = stability, Normality_p_value = normality_p_value))
+            Spillover_Matrices_Method2[[length(Spillover_Matrices_Method2) + 1]] <- list(Date = last_date, Spillover_Matrix = dca$TABLE)
+        } else {
+            TCI_df_Method2 <- rbind(TCI_df_Method2, data.frame(Date = last_date, TCI = NA, Num_Variables = num_variables, Model_Success = 0, Serial_Autocorrelation_p_value = NA, Stability = NA, Normality_p_value = NA))
+        }
+    }
+
+    # Failure statistics calculation
+    failure_stats <- TCI_df_Method2 %>%
+      mutate(Serial_Failed = ifelse(Serial_Autocorrelation_p_value < 0.05, 1, 0),
+             Normality_Failed = ifelse(Normality_p_value < 0.05, 1, 0),
+             Either_Failed = ifelse(Serial_Failed == 1 | Normality_Failed == 1, 1, 0))
+
+    Proportion_Serial_Failed <- mean(failure_stats$Serial_Failed)
+    Proportion_Normality_Failed <- mean(failure_stats$Normality_Failed)
+
+    # Save failure stats as a summary
+    failure_stats_df <- data.frame(
+      Method = "Method2",
+      Proportion_Serial_Failed = Proportion_Serial_Failed,
+      Proportion_Normality_Failed = Proportion_Normality_Failed
+    )
+
+    # Create file name based on h and window_size
+    file_name_failure <- paste0("failure_stats_h", h, "_window", window_size, ".csv")
+    write.csv(failure_stats_df, file = file_name_failure, row.names = FALSE)
+
+    # Save the results
+    file_name_tci <- paste0("TCI_results_Method2_h", h, "_window", window_size, ".csv")
+    write.csv(TCI_df_Method2, file = file_name_tci, row.names = FALSE)
+    
+    # Optional: Save Spillover Matrices (if needed)
+    spillover_file_name <- paste0("Spillover_Matrices_Method2_h", h, "_window", window_size, ".RData")
+    save(Spillover_Matrices_Method2, file = spillover_file_name)
+
+    # Create and save the TCI plot, including number of variables as a secondary axis
+    ggplot(TCI_df_Method2, aes(x = Date)) +
+      geom_line(aes(y = TCI, color = "TCI")) +
+      geom_bar(aes(y = Num_Variables * 100 / max(Num_Variables), fill = "Num_Variables"), stat = "identity", alpha = 0.3) +
+      scale_y_continuous(
+        name = "Total Connectedness Index (TCI)",
+        limits = c(0, 100),
+        sec.axis = sec_axis(~ . * max(TCI_df_Method2$Num_Variables) / 100, name = "Number of Variables")
+      ) +
+      labs(title = paste("Total Connectedness Index (TCI) and Number of Variables for h =", h, "and window size =", window_size),
+           x = "Date") +
+      scale_color_manual(values = c("TCI" = "blue")) +
+      scale_fill_manual(values = c("Num_Variables" = "grey")) +
+      theme_minimal() +
+      theme(
+        legend.position = "top",
+        legend.title = element_blank()
+      )
+
+    # Save the plot
+    tci_plot_file <- paste0("TCI_plot_h", h, "_window", window_size, ".png")
+    ggsave(tci_plot_file, bg = "white")
+
+  } # End window_size loop
+} # End h loop
