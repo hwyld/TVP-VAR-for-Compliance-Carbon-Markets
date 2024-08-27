@@ -248,7 +248,7 @@ dca$config
 
 # Test the model residuals for normality
 # Shapiro-Wilk test for normality
-shapiro.test(dca$residuals)
+#shapiro.test(dca$residuals)
 
 
 
@@ -621,7 +621,7 @@ events_study_df$StartDate <- pmax(events_study_df$StartDate, min(TCI_asym_return
 events_study_df <- events_study_df %>%
   mutate(
     Midpoint = as.Date((as.numeric(StartDate) + as.numeric(EndDate)) / 2, origin = "1970-01-01"),  # Midpoint for event label positioning
-    LabelY = rep(seq(30, 50, length.out = n()), length.out = n())  # Alternating y positions for labels to avoid overlap
+    LabelY = rep(seq(25, 50, length.out = n()), length.out = n())  # Alternating y positions for labels to avoid overlap
   )
 
 # Create the plot
@@ -674,7 +674,7 @@ ggplot() +
   
   # Setting the x-axis and y-axis limits and formats.
   scale_x_date(limits = c(min(TCI_asym_return$Date), max(TCI_asym_return$Date)), date_breaks = "1 year", date_labels = "%Y") +
-  scale_y_continuous(limits = c(0, 50))
+  scale_y_continuous(limits = c(0, 40))
 
 # Save the plot as a PNG
 ggsave(file.path(Asym, paste0("TCI_Asymmetric_with_events_r", ".png")), width = 8, height = 6, dpi = 300, bg = "white")

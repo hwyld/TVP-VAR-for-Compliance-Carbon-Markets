@@ -225,13 +225,22 @@ volatility <- xts(volatility, order.by = first_day_of_week)
 
 ### SUBSET DATA ###
 #---------------------------------------
-# Trim the data to start when NZU data set begins on 05/01/2010
-# Research_Data_weekly_returns <- weekly_returns["2018-01-08/"]
-# Research_Data_weekly_volatility <- volatility["2018-01-08/"]
 
-# No filter
-Research_Data_weekly_returns <- weekly_returns
-Research_Data_weekly_volatility <- volatility
+# Trim the data to start when NZU data set begins on 05/01/2010
+Research_Data_weekly_returns <- weekly_returns["2018-01-08/"]
+Research_Data_weekly_volatility <- volatility["2018-01-08/"]
+
+# Replace Volatility column names with the original names
+colnames(Research_Data_weekly_volatility) <- colnames(Research_Data_weekly_returns)
+
+# Drop CEA, UKA, WCA
+Research_Data_weekly_returns <- Research_Data_weekly_returns[, setdiff(names(Research_Data_weekly_returns), c("CEA", "UKA", "WCA"))]
+Research_Data_weekly_volatility <- Research_Data_weekly_volatility[, setdiff(names(Research_Data_weekly_volatility), c("CEA", "UKA", "WCA"))]
+
+# # No filter
+# Research_Data_weekly_returns <- weekly_returns
+# Research_Data_weekly_volatility <- volatility
+
 
 # Save the Date indexes for later use
 Research_Data_weekly_returns_dates <- index(Research_Data_weekly_returns)
@@ -450,7 +459,7 @@ a <- ggplot(Research_Data_continuously_compounded_weekly_returns_long, aes(x = D
   labs(title = "Weekly Returns",
        x = "Date",
        y = "Volatility") +
-  scale_color_manual(values = c("EUA" = "blue", "NZU" = "red", "CCA" = "green", "HBEA" = "purple")) +
+  #scale_color_manual(values = c("EUA" = "blue", "NZU" = "red", "CCA" = "green", "HBEA" = "purple")) +
   facet_wrap(~ Series, scales = "free_y") +  # Create a separate plot for each series
   theme_minimal()
 
@@ -466,7 +475,7 @@ plotly::ggplotly(a)
 plot <- ggplot(Research_Data_continuously_compounded_weekly_returns_long, aes(x = Date, y = Weekly_Return)) +
   geom_line(aes(color = Series), size = 0.7) +
   facet_wrap(~ Series, scales = "free", ncol = 2) +  # Create a 2 by 2 grid
-  labs(x = "Date", y = "Returns") +
+  labs(x = "Date", y = "Return (%)") +
   ggtitle("Weekly Returns of Global Carbon Market Network") +  # Add title
   scale_x_date(date_breaks = "1 year", date_labels = "%Y") +  # Set x-axis to show yearly ticks
   theme_minimal() +
@@ -488,6 +497,44 @@ htmlwidgets::saveWidget(plotly::ggplotly(plot), "Weekly_Returns_Plot.html")
 
 # Export the plot to a png file
 ggsave("Weekly_Returns_Plot.png", plot, width = 12, height = 8, units = "in", dpi = 300)
+
+# Histogram of weekly returns
+
+library(reshape2)
+library(gridExtra)
+
+# Function to create histogram with normal distribution overlay, matching the style of the line plots
+plot_histogram <- function(data, series_name) {
+  ggplot(data[data$Series == series_name,], aes(x = Weekly_Return)) +
+    geom_histogram(aes(y = ..density..), bins = 30, fill = "lightblue", color = "black") +
+    stat_function(fun = dnorm, args = list(mean = mean(data[data$Series == series_name, "Weekly_Return"]),
+                                           sd = sd(data[data$Series == series_name, "Weekly_Return"])),
+                  color = "red", size = 1) +
+    labs(title = paste("Histogram of Weekly Returns:", series_name),
+         x = "Return (%)", y = "Density") +
+    theme_minimal() +
+    theme(
+      plot.title = element_text(size = 16, face = "bold", hjust = 0),  # Title size and style
+      axis.title = element_text(size = 16),  # Axis title size
+      axis.text = element_text(size = 14),  # Axis label size
+      axis.line.x.bottom = element_line(color = "black", size = 0.5),  # Add x-axis line
+      axis.line.y.left = element_line(color = "black", size = 0.5),  # Add y-axis line
+      axis.ticks = element_line(color = "black", size = 0.5),  # Add axis ticks
+      axis.ticks.length = unit(0.2, "cm")  # Length of the ticks
+    )
+}
+
+# Create histograms for each series
+plot_list <- lapply(unique(Research_Data_continuously_compounded_weekly_returns_long$Series), function(series) {
+  plot_histogram(Research_Data_continuously_compounded_weekly_returns_long, series)
+})
+
+# Arrange the plots in a 2x2 grid and save the combined plot
+combined_histogram_plot <- cowplot::plot_grid(plotlist = plot_list, ncol = 2)
+
+# Save the combined plot as a PNG file
+ggsave("Weekly_Returns_Histogram_Plots.png", combined_histogram_plot, width = 12, height = 8, units = "in", dpi = 300, bg = "white")
+
 
 #---------------------------------------
 
@@ -511,7 +558,7 @@ p <- ggplot(Research_Data_annualised_weekly_volatility_long, aes(x = Date)) +
   labs(title = "Weekly Volatility",
        x = "Date",
        y = "Weekly Volatility") +
-  scale_color_manual(values = c("EUR_EUR" = "blue", "NZ_EUR" = "red", "CCA...Front.December...ICE" = "green", "Hubei_EUR" = "purple")) +
+  #scale_color_manual(values = c("EUR_EUR" = "blue", "NZ_EUR" = "red", "CCA...Front.December...ICE" = "green", "Hubei_EUR" = "purple")) +
   facet_wrap(~ Series, scales = "free_y") +  # Create a separate plot for each series
   theme_minimal()
 
@@ -558,25 +605,58 @@ ggsave("Weekly_Volatility_Plot.png", plot, width = 12, height = 8, units = "in",
 correlation_matrix_returns <- cor(Research_Data_weekly_returns, use = "pairwise.complete.obs")
 correlation_matrix_volatility <- cor(Research_Data_weekly_volatility, use = "pairwise.complete.obs")
 
-# Convert the correlation matrix to a data frame
-correlation_matrix_returns_df <- as.data.frame(correlation_matrix_returns)
-correlation_matrix_volatility_df <- as.data.frame(correlation_matrix_volatility)
+# Convert the correlation matrices to a long format for ggplot2
+correlation_matrix_returns_melted <- melt(correlation_matrix_returns)
+correlation_matrix_volatility_melted <- melt(correlation_matrix_volatility)
 
-# Set the row and column names
-row.names(correlation_matrix_returns_df) <- colnames(Research_Data_weekly_returns)
-colnames(correlation_matrix_returns_df) <- colnames(Research_Data_weekly_returns)
+# Define a custom color palette
+custom_palette <- colorRampPalette(c("red", "white", "blue"))
 
-row.names(correlation_matrix_volatility_df) <- colnames(Research_Data_weekly_volatility)
-colnames(correlation_matrix_volatility_df) <- colnames(Research_Data_weekly_volatility)
+# Plot the heatmap for the correlation matrix of returns
+ggplot(correlation_matrix_returns_melted, aes(Var1, Var2, fill = value)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                       midpoint = 0, limit = c(-1, 1), space = "Lab", 
+                       name = "Pearson Correlation") +  # Simplify the legend title to avoid overlap
+  theme_minimal() + 
+  theme(axis.text.x = element_text(vjust = 1, hjust = 1, size = 16),  # Align and set size for x-axis text
+        axis.text.y = element_text(size = 16),  # Set size for y-axis text
+        axis.title.x = element_blank(),  # Remove x-axis title
+        axis.title.y = element_blank(),  # Remove y-axis title
+        legend.position = "bottom",  # Position the legend at the bottom
+        legend.text = element_text(size = 14),  # Set legend text size
+        legend.title = element_text(size = 16, margin = margin(b = 10)),  # Increase font size and add margin to the bottom
+        legend.key.width = unit(2.5, "cm"),  # Increase the width of the legend keys
+        legend.spacing.x = unit(0.5, "cm")) +  # Increase the spacing between legend keys
+  coord_fixed(ratio = 1) +
+  labs(title = "Correlation Matrix for Weekly Returns") +
+  theme(plot.title = element_text(size = 20, face = "bold", hjust = 0.5))
 
-# Convert the correlation matrix to a matrix
-correlation_matrix_returns <- as.matrix(correlation_matrix_returns_df)
-correlation_matrix_volatility <- as.matrix(correlation_matrix_volatility_df)
+# Save the returns heatmap
+ggsave("Correlation_Matrix_Weekly_Returns.png", width = 10, height = , dpi = 300, bg = "white")
 
-# Plot the heatmap for the correlation matrix
-heatmap(correlation_matrix_returns, col = colorRampPalette(c("blue", "white", "red"))(100), scale = "none", main = "Correlation Matrix for Weekly Returns")
-heatmap(correlation_matrix_volatility, col = colorRampPalette(c("blue", "white", "red"))(100), scale = "none", main = "Correlation Matrix for Weekly Volatility")
+# Plot the heatmap for the correlation matrix of volatility
+ggplot(correlation_matrix_volatility_melted, aes(Var1, Var2, fill = value)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                       midpoint = 0, limit = c(-1, 1), space = "Lab", 
+                       name = "Pearson Correlation") +  # Simplify the legend title to avoid overlap
+  theme_minimal() + 
+  theme(axis.text.x = element_text(vjust = 1, hjust = 1, size = 16),  # Align and set size for x-axis text
+        axis.text.y = element_text(size = 16),  # Set size for y-axis text
+        axis.title.x = element_blank(),  # Remove x-axis title
+        axis.title.y = element_blank(),  # Remove y-axis title
+        legend.position = "bottom",  # Position the legend at the bottom
+        legend.text = element_text(size = 14),  # Set legend text size
+        legend.title = element_text(size = 16, margin = margin(b = 10)),  # Increase font size and add margin to the bottom
+        legend.key.width = unit(2.5, "cm"),  # Increase the width of the legend keys
+        legend.spacing.x = unit(0.5, "cm")) +  # Increase the spacing between legend keys
+  coord_fixed(ratio = 1) +
+  labs(title = "Correlation Matrix for Weekly Volatility") +
+  theme(plot.title = element_text(size = 20, face = "bold", hjust = 0.5))
 
+# Save the volatility heatmap
+ggsave("Correlation_Matrix_Weekly_Volatility.png", width = 10, height = 8, dpi = 300, bg = "white")
 #---------------------------------------
 
 
