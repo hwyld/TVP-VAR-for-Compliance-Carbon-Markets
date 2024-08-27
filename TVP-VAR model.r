@@ -125,7 +125,6 @@ dca = ConnectednessApproach(return_zoo,
                             connectedness="Time",
                             VAR_config=list(TVPVAR=list(kappa1=forgetting_factor, kappa2=decay_factor, prior="BayesPrior"))) # TVP-VAR model with forgetting factor and decay factor as specified
 
-
 #----------------------------------
 
 ## EXTRACT DATA ##
@@ -512,7 +511,8 @@ run_and_save_tvp_var <- function(asym_series, suffix) {
                                 nlag = lag_order,
                                 nfore = H,
                                 window.size = window_size,
-                                VAR_config = list(TVPVAR = list(kappa1 = forgetting_factor_asym, kappa2 = decay_factor_asym, prior = "MinnesotaPrior", gamma = 0.1))))
+                                VAR_config=list(TVPVAR=list(kappa1=forgetting_factor, kappa2=decay_factor, prior="BayesPrior")))) # TVP-VAR model with forgetting factor and decay factor as specified
+                                #VAR_config = list(TVPVAR = list(kappa1 = forgetting_factor_asym, kappa2 = decay_factor_asym, prior = "MinnesotaPrior", gamma = 0.1))))
     
     FEVD_list[[spec[i]]] <- DCA[[i]]$TABLE  # Store the FEVD for each specification
   }
