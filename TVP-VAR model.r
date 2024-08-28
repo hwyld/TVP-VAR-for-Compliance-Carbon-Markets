@@ -401,7 +401,7 @@ events_study_df$EndDate <- pmin(events_study_df$EndDate, max(TCI_return$Date))
 events_study_df$StartDate <- pmax(events_study_df$StartDate, min(TCI_return$Date))
 events_study_df <- events_study_df %>%
   mutate(
-    Midpoint = as.Date((as.numeric(StartDate) + as.numeric(EndDate)) / 2, origin = "1970-01-01"),
+    Midpoint = as.Date(Midpoint, origin = "1970-01-01"),
     LabelY = rep(seq(35, 40, length.out = n()), length.out = n())  # Alternate y positions
   )
 
@@ -511,8 +511,8 @@ run_and_save_tvp_var <- function(asym_series, suffix) {
                                 nlag = lag_order,
                                 nfore = H,
                                 window.size = window_size,
-                                VAR_config=list(TVPVAR=list(kappa1=forgetting_factor, kappa2=decay_factor, prior="BayesPrior")))) # TVP-VAR model with forgetting factor and decay factor as specified
-                                #VAR_config = list(TVPVAR = list(kappa1 = forgetting_factor_asym, kappa2 = decay_factor_asym, prior = "MinnesotaPrior", gamma = 0.1))))
+                                #VAR_config=list(TVPVAR=list(kappa1=forgetting_factor, kappa2=decay_factor, prior="BayesPrior")))) # TVP-VAR model with forgetting factor and decay factor as specified
+                                VAR_config = list(TVPVAR = list(kappa1 = forgetting_factor_asym, kappa2 = decay_factor_asym, prior = "MinnesotaPrior", gamma = 0.1))))
     
     FEVD_list[[spec[i]]] <- DCA[[i]]$TABLE  # Store the FEVD for each specification
   }
@@ -620,18 +620,18 @@ events_study_df$StartDate <- pmax(events_study_df$StartDate, min(TCI_asym_return
 # Calculating the midpoint of the event window for labeling and alternating label positions.
 events_study_df <- events_study_df %>%
   mutate(
-    Midpoint = as.Date((as.numeric(StartDate) + as.numeric(EndDate)) / 2, origin = "1970-01-01"),  # Midpoint for event label positioning
-    LabelY = rep(seq(25, 50, length.out = n()), length.out = n())  # Alternating y positions for labels to avoid overlap
+    Midpoint = as.Date(Midpoint , origin = "1970-01-01"),  # Midpoint for event label positioning
+    LabelY = c(seq(60, 20, length.out = ceiling(n() / 2)), seq(20, 60, length.out = floor(n() / 2)))  # First half seq(50, 25), second half seq(25, 50)
   )
 
 # Create the plot
 ggplot() + 
   # This adds shaded areas (rectangles) representing the time periods of different events in the event study.
-  geom_rect(data = events_study_df, aes(xmin = pmax(StartDate, min(TCI_asym_return$Date)), xmax = pmin(EndDate, max(TCI_asym_return$Date)), ymin = 0, ymax = 50, fill = Category), alpha = 0.2) +  
+  geom_rect(data = events_study_df, aes(xmin = pmax(StartDate, min(TCI_asym_return$Date)), xmax = pmin(EndDate, max(TCI_asym_return$Date)), ymin = 0, ymax = 60, fill = Category), alpha = 0.2) +  
   
   # Adding vertical lines at the StartDate and EndDate of each event.
-  geom_segment(data = events_study_df, aes(x = StartDate, xend = StartDate, y = 0, yend = 50), linetype = "solid", color = "grey", size = 0.25, alpha = 0.25) +  
-  geom_segment(data = events_study_df, aes(x = EndDate, xend = EndDate, y = 0, yend = 50), linetype = "solid", color = "grey", size = 0.25, alpha = 0.25) +  
+  geom_segment(data = events_study_df, aes(x = StartDate, xend = StartDate, y = 0, yend = 60), linetype = "solid", color = "grey", size = 0.25, alpha = 0.25) +  
+  geom_segment(data = events_study_df, aes(x = EndDate, xend = EndDate, y = 0, yend = 60), linetype = "solid", color = "grey", size = 0.25, alpha = 0.25) +  
   
   # Placing event numbers at the midpoint of the event window for easier identification.
   geom_text(data = events_study_df, aes(x = Midpoint, y = LabelY, label = EventNumber), angle = 90, vjust = 0.5, hjust = 0) +  
@@ -674,7 +674,7 @@ ggplot() +
   
   # Setting the x-axis and y-axis limits and formats.
   scale_x_date(limits = c(min(TCI_asym_return$Date), max(TCI_asym_return$Date)), date_breaks = "1 year", date_labels = "%Y") +
-  scale_y_continuous(limits = c(0, 40))
+  scale_y_continuous(limits = c(0, 60))
 
 # Save the plot as a PNG
 ggsave(file.path(Asym, paste0("TCI_Asymmetric_with_events_r", ".png")), width = 8, height = 6, dpi = 300, bg = "white")
@@ -692,3 +692,5 @@ ggsave(file.path(Asym, paste0("TCI_Asymmetric_with_events_r", ".png")), width = 
 # Window Size Sensitivity Analysis
 
 #----------------------------------
+
+
