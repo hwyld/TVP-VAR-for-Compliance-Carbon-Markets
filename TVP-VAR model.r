@@ -818,7 +818,6 @@ run_tvp_var_for_horizons <- function(asym_series) {
   forgetting_factor_asym <- 0.99
   decay_factor_asym <- 0.99
   lag_order <- 1
-  window_size <- 200
   
   for (H in horizons) {
     DCA = list()
