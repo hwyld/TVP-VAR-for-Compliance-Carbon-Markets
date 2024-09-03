@@ -497,7 +497,7 @@ run_and_save_tvp_var <- function(asym_series, suffix) {
   decay_factor_asym <- 0.99
   lag_order <- 1
   H <- 10
-  window_size <- 200
+  window_size <- 150
 
   DCA = list()
   spec = c("all", "positive", "negative")
@@ -553,7 +553,7 @@ run_and_save_tvp_var <- function(asym_series, suffix) {
   ## Plots ##
   # Total Connectedness Index (TCI)
   pdf(file.path(Asym, paste0("TCI_Asymmetric_", suffix, ".pdf")), width = 8, height = 6)
-  PlotTCI(DCA[[1]], ca = list(DCA[[2]], DCA[[3]]), ylim = c(-100, 100))
+  PlotTCI(DCA[[1]], ca = list(DCA[[2]], DCA[[3]]), ylim = c(0, 50))
   dev.off()
 
   # Dynamic directional spillovers TO markets
@@ -591,13 +591,39 @@ TCI_asym_return$Negative <- DCA_return[[3]]$TCI
 # Add the Date column
 TCI_asym_return$Date <- as.Date(rownames(TCI_asym_return))
 
+# Create a series called net by subtracting the Negative series from the Positive series
+TCI_asym_return$Net <- TCI_asym_return$Negative - TCI_asym_return$Positive
+
+# Move the Date column to the front
+TCI_asym_return <- TCI_asym_return[, c("Date", "all", "Positive", "Negative", "Net")]
+
 # Save the TCI_asym_return dataframe to a CSV file
 write.csv(TCI_asym_return, file.path(Asym, "TCI_asym_return.csv"), row.names = FALSE)
 
+# Plot net, positive and negative connectedness series
+ggplot(TCI_asym_return, aes(x = Date)) +
+  geom_line(aes(y = Net, color = "Net"), size = 1) +
+  geom_line(aes(y = Positive, color = "Positive"), size = 1) +
+  geom_line(aes(y = Negative, color = "Negative"), size = 1) +
+  labs(x = "Year", y = "Total Connectedness Index (TCI)", title = "Total Asymmetric Connectedness Series") +
+  theme_minimal() +
+  scale_color_manual(values = c("Net" = "black", "Positive" = "blue", "Negative" = "dark red")) +
+  theme(
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    plot.title = element_text(size = 14, face = "bold"),
+    legend.position = "bottom",
+    panel.grid.major = element_line(color = "grey80", size = 0.5),  # Add major gridlines
+    panel.grid.minor = element_line(color = "grey90", size = 0.25),  # Add minor gridlines
+    axis.line.x.bottom = element_line(color = "black", size = 1),
+    axis.line.y.left = element_line(color = "black", size = 1)
+  ) +
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y")
 
 #----------------------------------
 
-## Event Study Window Plots ##
+## Event Study Window Plots - all, positive, negative ##
 
 #----------------------------------
 
@@ -612,6 +638,8 @@ category_colors <- c(
         "covid-19" = "purple"
 )
 
+max.index <- 60
+
 # Add an EventNumber column to the TCI dataframe mapping the event number to repeat between the StartDate and EndDate
 # Here, we are adjusting the event study dates to ensure they fall within the TCI data's date range.
 events_study_df$EndDate <- pmin(events_study_df$EndDate, max(TCI_asym_return$Date))
@@ -621,17 +649,17 @@ events_study_df$StartDate <- pmax(events_study_df$StartDate, min(TCI_asym_return
 events_study_df <- events_study_df %>%
   mutate(
     Midpoint = as.Date(Midpoint , origin = "1970-01-01"),  # Midpoint for event label positioning
-    LabelY = c(seq(60, 20, length.out = ceiling(n() / 2)), seq(20, 60, length.out = floor(n() / 2)))  # First half seq(50, 25), second half seq(25, 50)
+    LabelY = c(seq(max.index, 20, length.out = ceiling(n() / 2)), seq(20, max.index, length.out = floor(n() / 2)))  # First half seq(50, 25), second half seq(25, 50)
   )
 
 # Create the plot
 ggplot() + 
   # This adds shaded areas (rectangles) representing the time periods of different events in the event study.
-  geom_rect(data = events_study_df, aes(xmin = pmax(StartDate, min(TCI_asym_return$Date)), xmax = pmin(EndDate, max(TCI_asym_return$Date)), ymin = 0, ymax = 60, fill = Category), alpha = 0.2) +  
+  geom_rect(data = events_study_df, aes(xmin = pmax(StartDate, min(TCI_asym_return$Date)), xmax = pmin(EndDate, max(TCI_asym_return$Date)), ymin = 0, ymax = max.index, fill = Category), alpha = 0.2) +  
   
   # Adding vertical lines at the StartDate and EndDate of each event.
-  geom_segment(data = events_study_df, aes(x = StartDate, xend = StartDate, y = 0, yend = 60), linetype = "solid", color = "grey", size = 0.25, alpha = 0.25) +  
-  geom_segment(data = events_study_df, aes(x = EndDate, xend = EndDate, y = 0, yend = 60), linetype = "solid", color = "grey", size = 0.25, alpha = 0.25) +  
+  geom_segment(data = events_study_df, aes(x = StartDate, xend = StartDate, y = 0, yend = max.index), linetype = "solid", color = "grey", size = 0.25, alpha = 0.25) +  
+  geom_segment(data = events_study_df, aes(x = EndDate, xend = EndDate, y = 0, yend = max.index), linetype = "solid", color = "grey", size = 0.25, alpha = 0.25) +  
   
   # Placing event numbers at the midpoint of the event window for easier identification.
   geom_text(data = events_study_df, aes(x = Midpoint, y = LabelY, label = EventNumber), angle = 90, vjust = 0.5, hjust = 0) +  
@@ -674,23 +702,359 @@ ggplot() +
   
   # Setting the x-axis and y-axis limits and formats.
   scale_x_date(limits = c(min(TCI_asym_return$Date), max(TCI_asym_return$Date)), date_breaks = "1 year", date_labels = "%Y") +
-  scale_y_continuous(limits = c(0, 60))
+  scale_y_continuous(limits = c(0, max.index))
 
 # Save the plot as a PNG
-ggsave(file.path(Asym, paste0("TCI_Asymmetric_with_events_r", ".png")), width = 8, height = 6, dpi = 300, bg = "white")
+ggsave(file.path(Asym, paste0("TCI_Asymmetric_with_events_all_r", ".png")), width = 8, height = 6, dpi = 300, bg = "white")
 
 #------------------------------------------------------------------------
 
+#----------------------------------
 
-## ROBUSNTNESS CHECKS ##
+## Event Study Window Plots - all, positive, negative ##
+
+#----------------------------------
+
+# Define custom colors for each category (adjust these to match the chart)
+# This creates a color scheme for the different event categories in the event study.
+category_colors <- c(
+        "global politics" = "orange", 
+        "carbon market" = "red", 
+        "weather" = "gold",
+        "energy" = "blue",
+        "finance" = "blue",
+        "covid-19" = "purple"
+)
+
+min.index <- 0
+max.index <- 50
+
+# Add an EventNumber column to the TCI dataframe mapping the event number to repeat between the StartDate and EndDate
+# Here, we are adjusting the event study dates to ensure they fall within the TCI data's date range.
+events_study_df$EndDate <- pmin(events_study_df$EndDate, max(TCI_asym_return$Date))
+events_study_df$StartDate <- pmax(events_study_df$StartDate, min(TCI_asym_return$Date))
+
+# Calculating the midpoint of the event window for labeling and alternating label positions.
+events_study_df <- events_study_df %>%
+  mutate(
+    Midpoint = as.Date(Midpoint , origin = "1970-01-01"),  # Midpoint for event label positioning
+    LabelY = c(seq(max.index, 20, length.out = ceiling(n() / 2)), seq(20, max.index, length.out = floor(n() / 2)))  # First half seq(50, 25), second half seq(25, 50)
+  )
+
+# Assuming TCI_asym_return is a data frame with columns Date, Net, and All
+
+# Create the plot
+ggplot() + 
+  # This adds shaded areas (rectangles) representing the time periods of different events in the event study.
+  geom_rect(data = events_study_df, aes(xmin = pmax(StartDate, min(TCI_asym_return$Date)), xmax = pmin(EndDate, max(TCI_asym_return$Date)), ymin = min.index, ymax = max.index, fill = Category), alpha = 0.2) +  
+  
+  # Adding vertical lines at the StartDate and EndDate of each event.
+  geom_segment(data = events_study_df, aes(x = StartDate, xend = StartDate, y = min.index, yend = max.index), linetype = "solid", color = "grey", size = 0.25, alpha = 0.25) +  
+  geom_segment(data = events_study_df, aes(x = EndDate, xend = EndDate, y = min.index, yend = max.index), linetype = "solid", color = "grey", size = 0.25, alpha = 0.25) +  
+  
+  # Placing event numbers at the midpoint of the event window for easier identification.
+  geom_text(data = events_study_df, aes(x = Midpoint, y = LabelY, label = EventNumber), angle = 90, vjust = 0.5, hjust = 0) +  
+  
+  # Drawing a shaded area under the 'Net' line representing the difference between the 'Net' series and the origin.
+  geom_ribbon(data = TCI_asym_return, aes(x = Date, ymin = pmin(Net, 0), ymax = pmax(Net, 0)), fill = "lightgrey", alpha = 1) +  
+  
+  # Plotting the line for the 'Net' series from the TCI asymmetric return data.
+  geom_line(data = TCI_asym_return, aes(x = Date, y = Net, color = "Net"), size = 0.8) +
+  
+  # Plotting the line for the 'All' series with a solid line.
+  geom_line(data = TCI_asym_return, aes(x = Date, y = all, color = "All"), size = 0.8) +
+  
+  # Adding labels and title to the plot.
+  labs(x = "Year", y = "Total Connectedness Index (TCI)", title = "Total Asymmetric Connectedness Event Study") + 
+  
+  # Applying a minimal theme to the plot for a cleaner look.
+  theme_minimal() +  
+  
+  # Assigning custom fill colors to the event categories.
+  scale_fill_manual(values = category_colors, name = "Category") +  
+  
+  # Assigning custom colors to the 'All' and 'Net' lines.
+  scale_color_manual(values = c("All" = "black", "Net" = "red")) +
+  
+  # Customizing the theme for the plot.
+  theme(
+    axis.title.x = element_text(size = 12),  # X-axis title size
+    axis.title.y = element_text(size = 12),  # Y-axis title size
+    axis.text = element_text(size = 10),  # Axis text size
+    plot.title = element_text(size = 14, face = "bold"),  # Title size and bold
+    legend.position = "bottom",  # Legend position
+    panel.grid = element_blank(),  # Removing all gridlines
+    axis.line.x.bottom = element_line(color = "black", size = 1),  # Adding a line to the bottom of the x-axis
+    axis.line.y.left = element_line(color = "black", size = 1)  # Adding a line to the left of the y-axis
+  ) +
+  
+  # Setting the x-axis and y-axis limits and formats.
+  scale_x_date(limits = c(min(TCI_asym_return$Date), max(TCI_asym_return$Date)), date_breaks = "1 year", date_labels = "%Y") +
+  scale_y_continuous(limits = c(min.index, max.index))
+
+# Save the plot as a PNG
+ggsave(file.path(Asym, paste0("TCI_Asymmetric_with_events_net_r", ".png")), width = 8, height = 6, dpi = 300, bg = "white")
+
+
+#------------------------------------------------------------------------
+
+#----------------------------------
+
+## ROBUSTNESS CHECKS ##
 
 #----------------------------------
 
 # Forecast Horizon Sensitivity Analysis
 
+# List of forecast horizons to test
+horizons <- c(5, 10, 15, 20)
+
+# Initialize empty data frames to store results for each horizon
+TCI_All_df <- data.frame(Date = as.Date(character()))
+TCI_Net_df <- data.frame(Date = as.Date(character()))
+
+# Function to run TVP-VAR for each horizon and save TCI results
+run_tvp_var_for_horizons <- function(asym_series) {
+  forgetting_factor_asym <- 0.99
+  decay_factor_asym <- 0.99
+  lag_order <- 1
+  window_size <- 200
+  
+  for (H in horizons) {
+    DCA = list()
+    spec = c("all", "positive", "negative")
+    
+    # Run the ConnectednessApproach for each series
+    for (i in 1:length(asym_series)) {
+      DCA[[i]] <- suppressMessages(ConnectednessApproach(asym_series[[i]], 
+                                  model = "TVP-VAR",
+                                  connectedness = "Time",
+                                  nlag = lag_order,
+                                  nfore = H,
+                                  window.size = window_size,
+                                  VAR_config = list(TVPVAR = list(kappa1 = forgetting_factor_asym, kappa2 = decay_factor_asym, prior = "MinnesotaPrior", gamma = 0.1))))
+    }
+    
+    # Extract TCI series
+    TCI_asym_return <- as.data.frame(DCA[[1]]$TCI)
+    colnames(TCI_asym_return) <- paste0("All_H", H)
+    
+    # Add DCA_return[[2]]$TCI as Positive and DCA_return[[3]]$TCI as Negative
+    TCI_asym_return$Positive <- DCA[[2]]$TCI
+    TCI_asym_return$Negative <- DCA[[3]]$TCI
+    
+    # Add the Date column
+    TCI_asym_return$Date <- as.Date(rownames(TCI_asym_return))
+    
+    # Create a series called Net by subtracting the Negative series from the Positive series
+    TCI_asym_return$Net <- TCI_asym_return$Negative - TCI_asym_return$Positive
+    
+    # Store the All and Net series in their respective dataframes
+    if (nrow(TCI_All_df) == 0) {
+      TCI_All_df <- TCI_asym_return[, c("Date", paste0("All_H", H))]
+      TCI_Net_df <- TCI_asym_return[, c("Date", "Net")]
+      colnames(TCI_Net_df)[2] <- paste0("Net_H", H)
+    } else {
+      TCI_All_df <- merge(TCI_All_df, TCI_asym_return[, c("Date", paste0("All_H", H))], by = "Date", all = TRUE)
+      TCI_Net_df <- merge(TCI_Net_df, TCI_asym_return[, c("Date", "Net")], by = "Date", all = TRUE)
+      colnames(TCI_Net_df)[ncol(TCI_Net_df)] <- paste0("Net_H", H)
+    }
+  }
+  
+  return(list(TCI_All_df = TCI_All_df, TCI_Net_df = TCI_Net_df))
+}
+
+# Run the TVP-VAR for the different forecast horizons and collect the dataframes
+result <- run_tvp_var_for_horizons(asym_return)
+
+# Extract the dataframes from the result list
+TCI_All_df <- result$TCI_All_df
+TCI_Net_df <- result$TCI_Net_df
+
+# Save the results to CSV files
+write.csv(TCI_All_df, file.path(Asym, "TCI_All_Horizons.csv"), row.names = FALSE)
+write.csv(TCI_Net_df, file.path(Asym, "TCI_Net_Horizons.csv"), row.names = FALSE)
+
+# Plot TCI All series for each horizon
+ggplot(TCI_All_df, aes(x = Date)) +
+  geom_line(aes(y = `All_H5`, color = "All_H5"), size = 1) +
+  geom_line(aes(y = `All_H10`, color = "All_H10"), size = 1) +
+  geom_line(aes(y = `All_H15`, color = "All_H15"), size = 1) +
+  geom_line(aes(y = `All_H20`, color = "All_H20"), size = 1) +
+  labs(x = "Year", y = "Total Connectedness Index (TCI)", title = "Total Connectedness Index Across Horizons") +
+  theme_minimal() +
+  scale_color_manual(values = c("All_H5" = "blue", "All_H10" = "red", "All_H15" = "green", "All_H20" = "purple")) +
+  theme(
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    plot.title = element_text(size = 14, face = "bold"),
+    legend.position = "bottom",
+    panel.grid.major = element_line(color = "grey80", size = 0.5),
+    panel.grid.minor = element_line(color = "grey90", size = 0.25),
+    axis.line.x.bottom = element_line(color = "black", size = 1),
+    axis.line.y.left = element_line(color = "black", size = 1)
+  ) +
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y")
+
+# Save the plot
+ggsave(file.path(Asym, "TCI_All_Horizons.png"), width = 8, height = 6, dpi = 300, bg = "white")
+
+# Plot TCI Net series for each horizon
+ggplot(TCI_Net_df, aes(x = Date)) +
+  geom_line(aes(y = `Net_H5`, color = "Net_H5"), size = 1) +
+  geom_line(aes(y = `Net_H10`, color = "Net_H10"), size = 1) +
+  geom_line(aes(y = `Net_H15`, color = "Net_H15"), size = 1) +
+  geom_line(aes(y = `Net_H20`, color = "Net_H20"), size = 1) +
+  labs(x = "Year", y = "Net Connectedness Index (Net TCI)", title = "Net Connectedness Index Across Horizons") +
+  theme_minimal() +
+  scale_color_manual(values = c("Net_H5" = "blue", "Net_H10" = "red", "Net_H15" = "green", "Net_H20" = "purple")) +
+  theme(
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    plot.title = element_text(size = 14, face = "bold"),
+    legend.position = "bottom",
+    panel.grid.major = element_line(color = "grey80", size = 0.5),
+    panel.grid.minor = element_line(color = "grey90", size = 0.25),
+    axis.line.x.bottom = element_line(color = "black", size = 1),
+    axis.line.y.left = element_line(color = "black", size = 1)
+  ) +
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y")
+
+# Save the plot
+ggsave(file.path(Asym, "TCI_Net_Horizons.png"), width = 8, height = 6, dpi = 300, bg = "white")
+
+
+#----------------------------------
+
+#----------------------------------
 
 # Window Size Sensitivity Analysis
 
 #----------------------------------
 
+# List of window sizes to test
+window_sizes <- c(100, 150, 200, 250)
 
+# Initialize empty data frames to store results for each window size
+TCI_All_df <- data.frame(Date = as.Date(character()))
+TCI_Net_df <- data.frame(Date = as.Date(character()))
+
+# Function to run TVP-VAR for each window size and save TCI results
+run_tvp_var_for_window_sizes <- function(asym_series) {
+  forgetting_factor_asym <- 0.99
+  decay_factor_asym <- 0.99
+  lag_order <- 1
+  H <- 10  # Fixed forecast horizon
+
+  for (window_size in window_sizes) {
+    DCA = list()
+    spec = c("all", "positive", "negative")
+    
+    # Run the ConnectednessApproach for each series
+    for (i in 1:length(asym_series)) {
+      DCA[[i]] <- suppressMessages(ConnectednessApproach(asym_series[[i]], 
+                                  model = "TVP-VAR",
+                                  connectedness = "Time",
+                                  nlag = lag_order,
+                                  nfore = H,
+                                  window.size = window_size,
+                                  VAR_config = list(TVPVAR = list(kappa1 = forgetting_factor_asym, kappa2 = decay_factor_asym, prior = "MinnesotaPrior", gamma = 0.1))))
+    }
+    
+    # Extract TCI series
+    TCI_asym_return <- as.data.frame(DCA[[1]]$TCI)
+    colnames(TCI_asym_return) <- paste0("All_W", window_size)
+    
+    # Add DCA_return[[2]]$TCI as Positive and DCA_return[[3]]$TCI as Negative
+    TCI_asym_return$Positive <- DCA[[2]]$TCI
+    TCI_asym_return$Negative <- DCA[[3]]$TCI
+    
+    # Add the Date column
+    TCI_asym_return$Date <- as.Date(rownames(TCI_asym_return))
+    
+    # Create a series called Net by subtracting the Negative series from the Positive series
+    TCI_asym_return$Net <- TCI_asym_return$Negative - TCI_asym_return$Positive
+    
+    # Store the All and Net series in their respective dataframes
+    if (nrow(TCI_All_df) == 0) {
+      TCI_All_df <- TCI_asym_return[, c("Date", paste0("All_W", window_size))]
+      TCI_Net_df <- TCI_asym_return[, c("Date", "Net")]
+      colnames(TCI_Net_df)[2] <- paste0("Net_W", window_size)
+    } else {
+      TCI_All_df <- merge(TCI_All_df, TCI_asym_return[, c("Date", paste0("All_W", window_size))], by = "Date", all = TRUE)
+      TCI_Net_df <- merge(TCI_Net_df, TCI_asym_return[, c("Date", "Net")], by = "Date", all = TRUE)
+      colnames(TCI_Net_df)[ncol(TCI_Net_df)] <- paste0("Net_W", window_size)
+    }
+  }
+  
+  return(list(TCI_All_df = TCI_All_df, TCI_Net_df = TCI_Net_df))
+}
+
+# Run the TVP-VAR for the different window sizes and collect the dataframes
+result <- run_tvp_var_for_window_sizes(asym_return)
+
+# Extract the dataframes from the result list
+TCI_All_df <- result$TCI_All_df
+TCI_Net_df <- result$TCI_Net_df
+
+# Check the data to ensure it varies across window sizes
+print(head(TCI_All_df))
+print(head(TCI_Net_df))
+
+# Save the results to CSV files
+write.csv(TCI_All_df, file.path(Asym, "TCI_All_Window_Sizes.csv"), row.names = FALSE)
+write.csv(TCI_Net_df, file.path(Asym, "TCI_Net_Window_Sizes.csv"), row.names = FALSE)
+
+# Plot TCI All series for each window size
+ggplot(TCI_All_df, aes(x = Date)) +
+  geom_line(aes(y = `All_W100`, color = "All_W100"), size = 1) +
+  geom_line(aes(y = `All_W150`, color = "All_W150"), size = 1) +
+  geom_line(aes(y = `All_W200`, color = "All_W200"), size = 1) +
+  geom_line(aes(y = `All_W250`, color = "All_W250"), size = 1) +
+  labs(x = "Year", y = "Total Connectedness Index (TCI)", title = "Total Connectedness Index Across Window Sizes") +
+  theme_minimal() +
+  scale_color_manual(values = c("All_W100" = "blue", "All_W150" = "red", "All_W200" = "green", "All_W250" = "purple")) +
+  theme(
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    plot.title = element_text(size = 14, face = "bold"),
+    legend.position = "bottom",
+    panel.grid.major = element_line(color = "grey80", size = 0.5),
+    panel.grid.minor = element_line(color = "grey90", size = 0.25),
+    axis.line.x.bottom = element_line(color = "black", size = 1),
+    axis.line.y.left = element_line(color = "black", size = 1)
+  ) +
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y")
+
+# Save the plot
+ggsave(file.path(Asym, "TCI_All_Window_Sizes.png"), width = 8, height = 6, dpi = 300, bg = "white")
+
+# Plot TCI Net series for each window size
+ggplot(TCI_Net_df, aes(x = Date)) +
+  geom_line(aes(y = `Net_W100`, color = "Net_W100"), size = 1) +
+  geom_line(aes(y = `Net_W150`, color = "Net_W150"), size = 1) +
+  geom_line(aes(y = `Net_W200`, color = "Net_W200"), size = 1) +
+  geom_line(aes(y = `Net_W250`, color = "Net_W250"), size = 1) +
+  labs(x = "Year", y = "Net Connectedness Index (Net TCI)", title = "Net Connectedness Index Across Window Sizes") +
+  theme_minimal() +
+  scale_color_manual(values = c("Net_W100" = "blue", "Net_W150" = "red", "Net_W200" = "green", "Net_W250" = "purple")) +
+  theme(
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    plot.title = element_text(size = 14, face = "bold"),
+    legend.position = "bottom",
+    panel.grid.major = element_line(color = "grey80", size = 0.5),
+    panel.grid.minor = element_line(color = "grey90", size = 0.25),
+    axis.line.x.bottom = element_line(color = "black", size = 1),
+    axis.line.y.left = element_line(color = "black", size = 1)
+  ) +
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y")
+
+# Save the plot
+ggsave(file.path(Asym, "TCI_Net_Window_Sizes.png"), width = 8, height = 6, dpi = 300, bg = "white")
+
+#----------------------------------
