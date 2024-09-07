@@ -146,16 +146,16 @@ NET_return <- as.data.frame(dca$NET)
 # Set the working directory to Rep to ensure all outputs go there
 setwd(Rep)
 
-# Start PDF device before creating the plot
-pdf(file.path(Rep, "TCI_returns.pdf"), width = 8, height = 6)  # Size in inches (default)
+# Start PNG device before creating the plot
+png(file.path(Rep, "TCI_returns.png"), width = 800, height = 600)  # Size in pixels
 
 # Set larger margins (bottom, left, top, right) to avoid clipping of titles/labels
 par(mar=c(5, 5.5, 4, 2) + 0.1)  # Increased left margin
 
 # Plot TCI data with adjusted limits and margins
 PlotTCI(dca, 
-        ca = NULL,
-        ylim = c(-100, 100))
+  ca = NULL,
+  ylim = c(0, 50))
 
 # Close the device and save the plot
 dev.off()
@@ -166,13 +166,13 @@ dev.off()
 
 #----------------------------------
 
-# Start PDF device before creating the plot
-pdf(file.path(Rep, "TO_returns.pdf"), width = 8, height = 6)  # Size in inches (default)
+# Start PNG device before creating the plot
+png(file.path(Rep, "TO_returns.png"), width = 800, height = 600)  # Size in pixels
 
 # Set larger margins (bottom, left, top, right) to avoid clipping of titles/labels
 par(mar=c(10, 4.5, 5, 2) + 0.1)  # Adjust these numbers as needed
 
-PlotTO(dca, ylim = c(-100, 100))
+PlotTO(dca, ylim = c(0, 100))
 
 # Close the device and save the plot
 dev.off()
@@ -183,13 +183,13 @@ dev.off()
 
 #----------------------------------
 
-# Start PDF device before creating the plot
-pdf(file.path(Rep, "FROM_returns.pdf"), width = 8, height = 6)  # Size in inches (default)
+# Start PNG device before creating the plot
+png(file.path(Rep, "FROM_returns.png"), width = 800, height = 600)  # Size in pixels
 
 # Set larger margins (bottom, left, top, right) to avoid clipping of titles/labels
 par(mar=c(10, 4.5, 5, 2) + 0.1)  # Adjust these numbers as needed
 
-PlotFROM(dca, ylim = c(0, 50))  # Adjust these numbers as needed
+PlotFROM(dca, ylim = c(0, 75))  # Adjust these numbers as needed
 
 # Close the device and save the plot
 dev.off()
@@ -200,13 +200,13 @@ dev.off()
 
 #----------------------------------
 
-# Start PDF device with adjusted height for more header space
-pdf(file.path(Rep, "NET_returns.pdf"), width = 8, height = 6)
+# Start PNG device with adjusted height for more header space
+png(file.path(Rep, "NET_returns.png"), width = 800, height = 600)
 
 # Plot the connectedness measures - Net Pairwise Total Connectedness
-PlotNET(dca, ylim = c(-30, 30), mar = c(5, 4, 6, 2), oma = c(0, 0, 4, 0))
+PlotNET(dca, ylim = c(-50, 50), mar = c(5, 4, 6, 2), oma = c(0, 0, 4, 0))
 
-# Close the PDF device
+# Close the PNG device
 dev.off()
 
 #----------------------------------
@@ -268,16 +268,16 @@ NET_vol <- as.data.frame(dca$NET)
 
 #----------------------------------
 
-# Start PDF device before creating the plot
-pdf(file.path(Rep, "TCI_vol.pdf"), width = 8, height = 6)  # Size in inches (default)
+# Start PNG device before creating the plot
+png(file.path(Rep, "TCI_vol.png"), width = 800, height = 600)  # Size in pixels
 
 # Set larger margins (bottom, left, top, right) to avoid clipping of titles/labels
 par(mar=c(5, 5.5, 4, 2) + 0.1)  # Increased left margin
 
 # Plot TCI data with adjusted limits and margins
 PlotTCI(dca, 
-        ca = NULL,
-        ylim = c(0, 50))
+  ca = NULL,
+  ylim = c(0, 50))
 
 # Close the device and save the plot
 dev.off()
@@ -288,8 +288,8 @@ dev.off()
 
 #----------------------------------
 
-# Start PDF device before creating the plot
-pdf(file.path(Rep, "TO_vol.pdf"), width = 8, height = 6)  # Size in inches (default)
+# Start PNG device before creating the plot
+png(file.path(Rep, "TO_vol.png"), width = 800, height = 600)  # Size in pixels
 
 # Set larger margins (bottom, left, top, right) to avoid clipping of titles/labels
 par(mar=c(10, 4.5, 5, 2) + 0.1)  # Adjust these numbers as needed
@@ -305,8 +305,8 @@ dev.off()
 
 #----------------------------------
 
-# Start PDF device before creating the plot
-pdf(file.path(Rep, "FROM_vol.pdf"), width = 8, height = 6)  # Size in inches (default)
+# Start PNG device before creating the plot
+png(file.path(Rep, "FROM_vol.png"), width = 800, height = 600)  # Size in pixels
 
 # Set larger margins (bottom, left, top, right) to avoid clipping of titles/labels
 par(mar=c(10, 4.5, 5, 2) + 0.1)  # Adjust these numbers as needed
@@ -322,13 +322,13 @@ dev.off()
 
 #----------------------------------
 
-# Start PDF device with adjusted height for more header space
-pdf(file.path(Rep, "NET_vol.pdf"), width = 8, height = 6)
+# Start PNG device with adjusted height for more header space
+png(file.path(Rep, "NET_vol.png"), width = 800, height = 600)
 
 # Plot the connectedness measures - Net Pairwise Total Connectedness
 PlotNET(dca, ylim = c(-50, 40), mar = c(5, 4, 6, 2), oma = c(0, 0, 4, 0))
 
-# Close the PDF device
+# Close the PNG device
 dev.off()
 
 #----------------------------------
@@ -1057,3 +1057,8 @@ ggplot(TCI_Net_df, aes(x = Date)) +
 ggsave(file.path(Asym, "TCI_Net_Window_Sizes.png"), width = 8, height = 6, dpi = 300, bg = "white")
 
 #----------------------------------
+
+
+
+## DUMMY REGRESSION EVENT STUDY ##
+
