@@ -21,10 +21,15 @@ setwd(Git)
 source("Packages.R")
 
 # Replication paper directory
-Asym <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness Bayes"
-#Asym <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness Minnesota"
-AsymHTesting <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness/Asymmetric Horizon Test"
-AsymWTesting <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness/Asymmetric Window Test"
+# Asym <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness Bayes"
+Asym <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness Minnesota"
+AsymHTesting <- paste0(Asym, "/Horizon Test")
+AsymWTesting <- paste0(Asym, "/Window Test")
+
+# Ensure the directory exists
+if (!dir.exists(Asym)) {
+  dir.create(Asym)
+}
 
 #----------------------------------
 
@@ -132,24 +137,38 @@ asym_vol <- prepare_asym_series(vol_zoo)
 #----------------------------------
 
 # Model Parameters
-  forgetting_factor_asym <- 0.99
-  decay_factor_asym <- 0.99
+
   lag_order <- 1
   H <- 10
-  window_size <- 150
+  window_size <- 200
+
+# TVP-VAR Parameters
+# Follows Adekoya, Akinseye, Antonakakis, Chatziantoniou, Gabauer, and Oliyide (2021)
+# https://gabauerdavid.github.io/ConnectednessApproach/2022Adekoya
+  forgetting_factor_asym <- 0.99
+  decay_factor_asym <- 0.99
+
+
+# follows Antonakakis et al. to keep the decay factors constant at fixed values.
+# See https://gabauerdavid.github.io/ConnectednessApproach/2020AntonakakisChatziantoniouGabauer
+  forgetting_factor <- 0.99
+  decay_factor <- 0.96
+
+
 
 # BayesPrior
 # more appropriate for capturing large swings in connectedness, particularly around extreme events
 # weaker restrictions  allow the model to capture these irregularities and extreme behavior more naturally. 
 # It offers flexibility in capturing shifts in connectedness caused by large market moves or political events.   
-  PriorChoice =list(TVPVAR=list(kappa1=forgetting_factor_asym, kappa2=decay_factor_asym, prior="BayesPrior"))
+
+  # PriorChoice =list(TVPVAR=list(kappa1=forgetting_factor, kappa2=decay_factor, prior="BayesPrior"))
 
 # MinnesotaPrior
 
 # Prior shrinks the parameters toward an assumption that each market is primarily driven by its own dynamics rather than by shocks from other markets
 # The Minnesota prior works well in cases where theoretical or empirical justification supports weak relationships between variables. 
 
-#  PriorChoice = list(TVPVAR = list(kappa1 = forgetting_factor_asym, kappa2 = decay_factor_asym, prior="MinnesotaPrior", gamma=0.1))
+ PriorChoice = list(TVPVAR = list(kappa1 = forgetting_factor_asym, kappa2 = decay_factor_asym, prior="MinnesotaPrior", gamma=0.1))
 
 # Function to run TVP-VAR, save FEVD, and generate plots
 run_and_save_tvp_var <- function(asym_series, suffix) {
@@ -558,7 +577,7 @@ ggsave(file.path(AsymHTesting, "TCI_All_Horizons.png"), width = 8, height = 6, d
 # Plot TCI Net series for each horizon
 ggplot(TCI_Net_long, aes(x = Date, y = TCI, color = Horizon)) +
   geom_line(size = 1) +
-  labs(x = "Year", y = "Net Connectedness Index (Net TCI)", title = "Net Connectedness Index Across Forecast Horizons") +
+  labs(x = "Year", y = "Net Connectedness Index (NegTCI - PosTCI)", title = "Net Connectedness Index Across Forecast Horizons") +
   theme_minimal() +
   theme(
     axis.title.x = element_text(size = 12),
@@ -688,7 +707,7 @@ ggsave(file.path(AsymWTesting, "TCI_All_Window_Sizes.png"), width = 8, height = 
 # Plot TCI Net series for each window size
 ggplot(TCI_Net_ws_long, aes(x = Date, y = TCI, color = Window_Size)) +
   geom_line(size = 1) +
-  labs(x = "Year", y = "Net Connectedness Index (Net TCI)", title = "Net Connectedness Index Across Window Sizes") +
+  labs(x = "Year", y = "Net Connectedness Index (NegTCI - PosTCI)", title = "Net Connectedness Index Across Window Sizes") +
   theme_minimal() +
   theme(
     axis.title.x = element_text(size = 12),
@@ -707,8 +726,3 @@ ggplot(TCI_Net_ws_long, aes(x = Date, y = TCI, color = Window_Size)) +
 ggsave(file.path(AsymWTesting, "TCI_Net_Window_Sizes.png"), width = 8, height = 6, dpi = 300, bg = "white")
 
 #----------------------------------
-
-
-
-## DUMMY REGRESSION EVENT STUDY ##
-
