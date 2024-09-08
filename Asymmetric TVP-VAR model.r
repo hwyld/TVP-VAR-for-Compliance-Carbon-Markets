@@ -21,9 +21,10 @@ setwd(Git)
 source("Packages.R")
 
 # Replication paper directory
-Asym <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness"
-AsymHTesting <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Horizon Test"
-AsymWTesting <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Window Test"
+Asym <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness Bayes"
+#Asym <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness Minnesota"
+AsymHTesting <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness/Asymmetric Horizon Test"
+AsymWTesting <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness/Asymmetric Window Test"
 
 #----------------------------------
 
@@ -137,6 +138,19 @@ asym_vol <- prepare_asym_series(vol_zoo)
   H <- 10
   window_size <- 150
 
+# BayesPrior
+# more appropriate for capturing large swings in connectedness, particularly around extreme events
+# weaker restrictions  allow the model to capture these irregularities and extreme behavior more naturally. 
+# It offers flexibility in capturing shifts in connectedness caused by large market moves or political events.   
+  PriorChoice =list(TVPVAR=list(kappa1=forgetting_factor_asym, kappa2=decay_factor_asym, prior="BayesPrior"))
+
+# MinnesotaPrior
+
+# Prior shrinks the parameters toward an assumption that each market is primarily driven by its own dynamics rather than by shocks from other markets
+# The Minnesota prior works well in cases where theoretical or empirical justification supports weak relationships between variables. 
+
+#  PriorChoice = list(TVPVAR = list(kappa1 = forgetting_factor_asym, kappa2 = decay_factor_asym, prior="MinnesotaPrior", gamma=0.1))
+
 # Function to run TVP-VAR, save FEVD, and generate plots
 run_and_save_tvp_var <- function(asym_series, suffix) {
 
@@ -152,8 +166,7 @@ run_and_save_tvp_var <- function(asym_series, suffix) {
                                 nlag = lag_order,
                                 nfore = H,
                                 window.size = window_size,
-                                #VAR_config=list(TVPVAR=list(kappa1=forgetting_factor, kappa2=decay_factor, prior="BayesPrior")))) # TVP-VAR model with forgetting factor and decay factor as specified
-                                VAR_config = list(TVPVAR = list(kappa1 = forgetting_factor_asym, kappa2 = decay_factor_asym, prior = "BayesPrior"))))
+                                VAR_config=PriorChoice)) # TVP-VAR model with forgetting factor and decay factor as specified
     
     FEVD_list[[spec[i]]] <- DCA[[i]]$TABLE  # Store the FEVD for each specification
   }
@@ -474,7 +487,7 @@ run_tvp_var_for_horizons <- function(asym_series) {
                     nlag = lag_order,
                     nfore = H,
                     window.size = window_size,
-                    VAR_config = list(TVPVAR = list(kappa1 = forgetting_factor_asym, kappa2 = decay_factor_asym, prior = "BayesPrior"))))
+                    VAR_config = PriorChoice))
     }
     
     # Extract TCI series for the "All" and "Net" series
@@ -586,11 +599,7 @@ TCI_Net_ws_df <- data.frame(Date = as.Date(character()))
 
 # Function to run TVP-VAR for each window size and save TCI results
 run_tvp_var_for_window_sizes <- function(asym_series) {
-  forgetting_factor_asym <- 0.99
-  decay_factor_asym <- 0.99
-  lag_order <- 1
-  H <- 10  # Example forecast horizon (can be adjusted)
-  
+    
   for (window_size in window_sizes) {
     cat("Running model with window size:", window_size, "\n")  # Debugging check to print window size
     DCA = list()
@@ -604,7 +613,7 @@ run_tvp_var_for_window_sizes <- function(asym_series) {
                     nlag = lag_order,
                     nfore = H,
                     window.size = window_size,  # Ensure window size is passed here
-                    VAR_config = list(TVPVAR = list(kappa1 = forgetting_factor_asym, kappa2 = decay_factor_asym, prior = "BayesPrior"))))
+                    VAR_config = PriorChoice))
     }
     
     # Extract TCI series for the "All" and "Net" series
