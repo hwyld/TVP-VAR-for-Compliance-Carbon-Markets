@@ -21,8 +21,13 @@ setwd(Git)
 source("Packages.R")
 
 # Replication paper directory
-Rep <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Replication Exercise"
-Asym <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness"
+# Rep <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Replication Exercise/Bayes"
+Rep <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Replication Exercise/Minnesota"
+
+# Ensure the directory exists
+if (!dir.exists(Rep)) {
+  dir.create(Rep)
+}
 
 #----------------------------------
 
@@ -105,16 +110,38 @@ events_study_df$Midpoint <- as.Date(events_study_df$Midpoint, format = "%d/%m/%Y
 
 #----------------------------------
 
-# Specify the lag order
-lag_order <- 1  # his analysis uses first-order VARs (p = 1) (selected by Schwarz information criterion), 
-H <- 10 # with 10-step-ahead forecasts (H = 10).
-window_size <- 200 # Window size for the rolling window estimation
+# Model Parameters
 
-# This study considers forgetting factor, kappa1=0.99 and decay factor kappa2=0.96 
+  lag_order <- 1
+  H <- 10
+  window_size <- 200
+
+# TVP-VAR Parameters
+# Follows Adekoya, Akinseye, Antonakakis, Chatziantoniou, Gabauer, and Oliyide (2021)
+# https://gabauerdavid.github.io/ConnectednessApproach/2022Adekoya
+  forgetting_factor_asym <- 0.99
+  decay_factor_asym <- 0.99
+
+
 # follows Antonakakis et al. to keep the decay factors constant at fixed values.
 # See https://gabauerdavid.github.io/ConnectednessApproach/2020AntonakakisChatziantoniouGabauer
-forgetting_factor <- 0.99
-decay_factor <- 0.96
+  forgetting_factor <- 0.99
+  decay_factor <- 0.96
+
+# BayesPrior
+# more appropriate for capturing large swings in connectedness, particularly around extreme events
+# weaker restrictions  allow the model to capture these irregularities and extreme behavior more naturally. 
+# It offers flexibility in capturing shifts in connectedness caused by large market moves or political events.   
+
+  # PriorChoice =list(TVPVAR=list(kappa1=forgetting_factor, kappa2=decay_factor, prior="BayesPrior"))
+
+# MinnesotaPrior
+
+# Prior shrinks the parameters toward an assumption that each market is primarily driven by its own dynamics rather than by shocks from other markets
+# The Minnesota prior works well in cases where theoretical or empirical justification supports weak relationships between variables. 
+
+ PriorChoice = list(TVPVAR = list(kappa1 = forgetting_factor_asym, kappa2 = decay_factor_asym, prior="MinnesotaPrior", gamma=0.1))
+
 
 # TVP_VAR using ConnectednessApproach package
 dca = ConnectednessApproach(return_zoo, 
@@ -123,7 +150,7 @@ dca = ConnectednessApproach(return_zoo,
                             window.size=window_size,
                             model="TVP-VAR",
                             connectedness="Time",
-                            VAR_config=list(TVPVAR=list(kappa1=forgetting_factor, kappa2=decay_factor, prior="BayesPrior"))) # TVP-VAR model with forgetting factor and decay factor as specified
+                            VAR_config = PriorChoice) # TVP-VAR model with forgetting factor and decay factor as specified
 
 #----------------------------------
 
@@ -234,10 +261,10 @@ FEVD_returns <- as.data.frame(FEVD_returns)
 dca = ConnectednessApproach(vol_zoo, 
                             nlag=lag_order, 
                             nfore=H,
-                            window.size=200,
+                            window.size=window_size,
                             model="TVP-VAR",
                             connectedness="Time",
-                            VAR_config=list(TVPVAR=list(kappa1=forgetting_factor, kappa2=decay_factor, prior="BayesPrior"))) # TVP-VAR model with forgetting factor and decay factor as specified
+                            VAR_config=PriorChoice) # TVP-VAR model with forgetting factor and decay factor as specified
 
 dca$config
 
@@ -389,32 +416,40 @@ writeLines(combined_html_lines, file.path(Rep, "combined_connectedness.html"))
 #----------------------------------
 
 # Define custom colors for each category (adjust these to match the chart)
+# This creates a color scheme for the different event categories in the event study.
 category_colors <- c(
         "global politics" = "orange", 
         "carbon market" = "red", 
         "weather" = "gold",
-        "energy" = "blue",
+        "energy" = "green",
         "finance" = "blue",
-        "covid-19" = "purple")
+        "covid-19" = "purple"
+)
+
+max.index <- 50
 
 # Add an EventNumber column to the TCI dataframe mapping the event number to repeat between the StartDate and EndDate
+# Here, we are adjusting the event study dates to ensure they fall within the TCI data's date range.
 events_study_df$EndDate <- pmin(events_study_df$EndDate, max(TCI_return$Date))
 events_study_df$StartDate <- pmax(events_study_df$StartDate, min(TCI_return$Date))
+
+# Calculating the midpoint of the event window for labeling and alternating label positions.
 events_study_df <- events_study_df %>%
   mutate(
-    Midpoint = as.Date(Midpoint, origin = "1970-01-01"),
-    LabelY = rep(seq(35, 40, length.out = n()), length.out = n())  # Alternate y positions
+    Midpoint = as.Date(Midpoint , origin = "1970-01-01"),  # Midpoint for event label positioning
+    LabelY = c(seq(max.index, 20, length.out = ceiling(n() / 2)), seq(20, max.index, length.out = floor(n() / 2)))  # First half seq(50, 25), second half seq(25, 50)
   )
+
 
 # Create the plot
 ggplot() + 
-  geom_rect(data = events_study_df, aes(xmin = pmax(StartDate, min(TCI_return$Date)), xmax = pmin(EndDate, max(TCI_return$Date)), ymin = 0, ymax = 40, fill = Category), alpha = 0.2) +  
-  geom_segment(data = events_study_df, aes(x = StartDate, xend = StartDate, y = 0, yend = 40), linetype = "solid", color = "grey", size = 0.25, alpha = 0.25) +  
-  geom_segment(data = events_study_df, aes(x = EndDate, xend = EndDate, y = 0, yend = 40), linetype = "solid", color = "grey", size = 0.25, alpha = 0.25) +  
-  geom_text(data = events_study_df, aes(x = Midpoint, y = LabelY, label = EventNumber), angle = 90, vjust = 0.5, hjust = 0) +  
+  geom_rect(data = events_study_df, aes(xmin = pmax(StartDate, min(TCI_return$Date)), xmax = pmin(EndDate, max(TCI_return$Date)), ymin = 0, ymax = max.index, fill = Category), alpha = 0.2) +  
+  geom_segment(data = events_study_df, aes(x = StartDate, xend = StartDate, y = 0, yend = max.index), linetype = "solid", color = "grey", size = 0.25, alpha = 0.25) +  
+  geom_segment(data = events_study_df, aes(x = EndDate, xend = EndDate, y = 0, yend = max.index), linetype = "solid", color = "grey", size = 0.25, alpha = 0.25) +  
   geom_ribbon(data = TCI_return, aes(x = Date, ymin = 0, ymax = TCI), fill = "darkgrey", alpha = 1) +  
   geom_line(data = TCI_return, aes(x = Date, y = TCI), color = "black", size = 0.5) +  
-  labs(x = "year", y = "Total spillover index", title = "Total Return Connectedess Event Study") +
+  geom_text(data = events_study_df, aes(x = Midpoint, y = LabelY, label = EventNumber), angle = 90, vjust = 0.5, hjust = 0) + 
+  labs(x = "year", y = "Total Connectedness Index (TCI)", title = "Total Return Connectedess Event Study") +
   theme_minimal() +  
   scale_fill_manual(values = category_colors, name = "Category") +  
   theme(
@@ -428,7 +463,7 @@ ggplot() +
     axis.line.y.left = element_line(color = "black", size = 1)
   ) +
   scale_x_date(limits = c(min(TCI_return$Date), max(TCI_return$Date)), date_breaks = "1 year", date_labels = "%Y") +
-  scale_y_continuous(limits = c(0, 40))
+  scale_y_continuous(limits = c(0, max.index))
 
 # Save the plot as a PNG with white background
 ggsave(file.path(Rep, "TCI_returns_with_events.png"), width = 8, height = 6, dpi = 300, bg = "white")
@@ -441,13 +476,13 @@ ggsave(file.path(Rep, "TCI_returns_with_events.png"), width = 8, height = 6, dpi
 
 # Create the plot
 ggplot() + 
-  geom_rect(data = events_study_df, aes(xmin = pmax(StartDate, min(TCI_vol$Date)), xmax = pmin(EndDate, max(TCI_vol$Date)), ymin = 0, ymax = 40, fill = Category), alpha = 0.2) +  
-  geom_segment(data = events_study_df, aes(x = StartDate, xend = StartDate, y = 0, yend = 40), linetype = "solid", color = "grey", size = 0.25, alpha = 0.25) +  
-  geom_segment(data = events_study_df, aes(x = EndDate, xend = EndDate, y = 0, yend = 40), linetype = "solid", color = "grey", size = 0.25, alpha = 0.25) +  
-  geom_text(data = events_study_df, aes(x = Midpoint, y = LabelY, label = EventNumber), angle = 90, vjust = 0.5, hjust = 0) +  
-  geom_ribbon(data = TCI_vol, aes(x = Date, ymin = 0, ymax = TCI), fill = "black", alpha = 1) +  
+  geom_rect(data = events_study_df, aes(xmin = pmax(StartDate, min(TCI_vol$Date)), xmax = pmin(EndDate, max(TCI_vol$Date)), ymin = 0, ymax = max.index, fill = Category), alpha = 0.2) +  
+  geom_segment(data = events_study_df, aes(x = StartDate, xend = StartDate, y = 0, yend = max.index), linetype = "solid", color = "grey", size = 0.25, alpha = 0.25) +  
+  geom_segment(data = events_study_df, aes(x = EndDate, xend = EndDate, y = 0, yend = max.index), linetype = "solid", color = "grey", size = 0.25, alpha = 0.25) +  
+  geom_ribbon(data = TCI_vol, aes(x = Date, ymin = 0, ymax = TCI), fill = "grey", alpha = 1) +  
   geom_line(data = TCI_vol, aes(x = Date, y = TCI), color = "black", size = 1) +  
-  labs(x = "year", y = "Total spillover index", title = "Total Volatility Connectedess Event Study") +
+  geom_text(data = events_study_df, aes(x = Midpoint, y = LabelY, label = EventNumber), angle = 90, vjust = 0.5, hjust = 0) + 
+  labs(x = "year", y = "Total Connectedness Index (TCI)", title = "Total Volatility Connectedess Event Study") +
   theme_minimal() +  
   scale_fill_manual(values = category_colors, name = "Category") +  
   theme(
@@ -461,7 +496,7 @@ ggplot() +
     axis.line.y.left = element_line(color = "black", size = 1)
   ) +
   scale_x_date(limits = c(min(TCI_vol$Date), max(TCI_vol$Date)), date_breaks = "1 year", date_labels = "%Y") +
-  scale_y_continuous(limits = c(0, 40))
+  scale_y_continuous(limits = c(0, max.index))
 
 # Save the plot as a PNG with white background
 ggsave(file.path(Rep, "TCI_volatility_with_events.png"), width = 8, height = 6, dpi = 300, bg = "white")

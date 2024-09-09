@@ -21,8 +21,8 @@ setwd(Git)
 source("Packages.R")
 
 # Replication paper directory
-# Asym <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness Bayes"
-Asym <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness Minnesota"
+Asym <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness Bayes"
+# Asym <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness Minnesota"
 AsymHTesting <- paste0(Asym, "/Horizon Test")
 AsymWTesting <- paste0(Asym, "/Window Test")
 
@@ -161,41 +161,48 @@ asym_vol <- prepare_asym_series(vol_zoo)
 # weaker restrictions  allow the model to capture these irregularities and extreme behavior more naturally. 
 # It offers flexibility in capturing shifts in connectedness caused by large market moves or political events.   
 
-  # PriorChoice =list(TVPVAR=list(kappa1=forgetting_factor, kappa2=decay_factor, prior="BayesPrior"))
+  PriorChoice =list(TVPVAR=list(kappa1=forgetting_factor, kappa2=decay_factor, prior="BayesPrior"))
 
 # MinnesotaPrior
 
 # Prior shrinks the parameters toward an assumption that each market is primarily driven by its own dynamics rather than by shocks from other markets
 # The Minnesota prior works well in cases where theoretical or empirical justification supports weak relationships between variables. 
 
- PriorChoice = list(TVPVAR = list(kappa1 = forgetting_factor_asym, kappa2 = decay_factor_asym, prior="MinnesotaPrior", gamma=0.1))
+# PriorChoice = list(TVPVAR = list(kappa1 = forgetting_factor_asym, kappa2 = decay_factor_asym, prior="MinnesotaPrior", gamma=0.1))
 
 # Function to run TVP-VAR, save FEVD, and generate plots
 run_and_save_tvp_var <- function(asym_series, suffix) {
 
   DCA = list()
-  spec = c("all", "positive", "negative")
+  spec = c("All", "Positive", "Negative")
   
   FEVD_list <- list()  # Initialize list to store FEVDs
   
+  # Run the ConnectednessApproach for each series and store the results
   for (i in 1:length(asym_series)) {
-    DCA[[i]] = suppressMessages(ConnectednessApproach(asym_series[[i]], 
-                                model = "TVP-VAR",
-                                connectedness = "Time",
-                                nlag = lag_order,
-                                nfore = H,
-                                window.size = window_size,
-                                VAR_config=PriorChoice)) # TVP-VAR model with forgetting factor and decay factor as specified
+    DCA[[i]] = suppressMessages(ConnectednessApproach(
+      asym_series[[i]], 
+      model = "TVP-VAR",
+      connectedness = "Time",
+      nlag = lag_order,
+      nfore = H,
+      window.size = window_size,
+      VAR_config = PriorChoice  # PriorChoice defined externally
+    ))
     
     FEVD_list[[spec[i]]] <- DCA[[i]]$TABLE  # Store the FEVD for each specification
   }
+
+  # Save the information criteria to an html file
+  #stargazer::stargazer(DCA[[1]]$IC, type = "html", summary = FALSE, title = "Information Criteria", out = file.path(Asym, paste0("IC_", suffix, ".html")))
 
   ## Save FEVD tables ##
   for (i in 1:length(FEVD_list)) {
     FEVD_df <- FEVD_list[[spec[i]]]
     # Remove rows like "Inc.Own" and "NPT"
     FEVD_df <- FEVD_df[!(rownames(FEVD_df) %in% c("Inc.Own", "NPT")), ]
-    # Save to HTML file
+    
+    # Save to HTML file using stargazer
     stargazer::stargazer(FEVD_df, type = "html", summary = FALSE, 
                          title = paste("FEVD -", spec[i], suffix), 
                          out = file.path(Asym, paste0("FEVD_", spec[i], "_", suffix, ".html")))
@@ -208,9 +215,11 @@ run_and_save_tvp_var <- function(asym_series, suffix) {
   }
 
   # Insert captions for each specification
-  captions <- c('<caption style="text-align:left;">Panel A: All connectedness (%)</caption>',
-                '<caption style="text-align:left;">Panel B: Positive connectedness (%)</caption>',
-                '<caption style="text-align:left;">Panel C: Negative connectedness (%)</caption>')
+  captions <- c(
+    '<caption style="text-align:left;">Panel A: All connectedness (%)</caption>',
+    '<caption style="text-align:left;">Panel B: Positive connectedness (%)</caption>',
+    '<caption style="text-align:left;">Panel C: Negative connectedness (%)</caption>'
+  )
 
   for (i in 1:length(html_lines)) {
     table_start_index <- which(grepl("<table", html_lines[[i]], fixed = TRUE))[1]
@@ -221,7 +230,18 @@ run_and_save_tvp_var <- function(asym_series, suffix) {
   combined_html_lines <- c(html_lines[[1]], "<br><br>", html_lines[[2]], "<br><br>", html_lines[[3]])
 
   # Add final caption at the bottom
-  caption_connectedness <- '<tr><td colspan="7" style="text-align:left;">Aligning with Adekoya, Akinseye, Antonakakis, Chatziantoniou, Gabauer, and Oliyide (2021), this analysis uses first-order VARs (p = 1) as selected by Schwarz information criterion, with 10-step-ahead forecasts (H = 10).</td></tr>'
+  # caption_connectedness <- '<tr><td colspan="7" style="text-align:left;">Aligning with Adekoya et al. (2021), this analysis uses first-order VARs (p = 1) as selected by Schwarz information criterion, with 10-step-ahead forecasts and a Minnesota Prior.</td></tr>'
+  caption_connectedness <- '<tr><td colspan="7" style="text-align:left;">Aligning with Antonakakis et al. (2020), this analysis uses first-order VARs (p = 1) as selected by Schwarz information criterion, with 10-step-ahead forecasts and a Bayes Prior.</td></tr>'
+
+  # Insert final caption
+  table_end_index <- which(grepl("</table>", combined_html_lines, fixed = TRUE))[length(which(grepl("</table>", combined_html_lines, fixed = TRUE)))]
+  combined_html_lines <- append(combined_html_lines, caption_connectedness, after = table_end_index)
+
+  # Write combined HTML to file
+  writeLines(combined_html_lines, file.path(Asym, paste0("FEVD_Combined_", suffix, ".html")))
+
+  # Write combined HTML to a table in the R Markdown file
+  cat("```{r, echo=FALSE}\n", file = file.path(Asym, paste0("FEVD_Combined_", suffix, ".Rmd")), append = TRUE)
 
   ## Plots ##
   # Total Connectedness Index (TCI)
@@ -306,7 +326,7 @@ category_colors <- c(
         "global politics" = "orange", 
         "carbon market" = "red", 
         "weather" = "gold",
-        "energy" = "blue",
+        "energy" = "green",
         "finance" = "blue",
         "covid-19" = "purple"
 )
@@ -334,9 +354,6 @@ ggplot() +
   geom_segment(data = events_study_df, aes(x = StartDate, xend = StartDate, y = 0, yend = max.index), linetype = "solid", color = "grey", size = 0.25, alpha = 0.25) +  
   geom_segment(data = events_study_df, aes(x = EndDate, xend = EndDate, y = 0, yend = max.index), linetype = "solid", color = "grey", size = 0.25, alpha = 0.25) +  
   
-  # Placing event numbers at the midpoint of the event window for easier identification.
-  geom_text(data = events_study_df, aes(x = Midpoint, y = LabelY, label = EventNumber), angle = 90, vjust = 0.5, hjust = 0) +  
-  
   # Drawing a shaded area under the 'All' line representing the total connectedness index for all events.
   geom_ribbon(data = TCI_asym_return, aes(x = Date, ymin = 0, ymax = all), fill = "lightgrey", alpha = 1) +  
   
@@ -348,6 +365,9 @@ ggplot() +
   
   # Plotting the line for the 'Negative' series with a dashed line.
   geom_line(data = TCI_asym_return, aes(x = Date, y = Negative, color = "Negative"), linetype = "dashed", size = 0.8) +
+
+  # Placing event numbers at the midpoint of the event window for easier identification.
+  geom_text(data = events_study_df, aes(x = Midpoint, y = LabelY, label = EventNumber), angle = 90, vjust = 0.5, hjust = 0) +  
   
   # Adding labels and title to the plot.
   labs(x = "Year", y = "Total Connectedness Index (TCI)", title = "Total Asymmetric Connectedness Event Study" )  +
@@ -388,17 +408,6 @@ ggsave(file.path(Asym, paste0("TCI_Asymmetric_with_events_all_r", ".png")), widt
 
 #----------------------------------
 
-# Define custom colors for each category (adjust these to match the chart)
-# This creates a color scheme for the different event categories in the event study.
-category_colors <- c(
-        "global politics" = "orange", 
-        "carbon market" = "red", 
-        "weather" = "gold",
-        "energy" = "blue",
-        "finance" = "blue",
-        "covid-19" = "purple"
-)
-
 min.index <- 0
 max.index <- 50
 
@@ -425,9 +434,6 @@ ggplot() +
   geom_segment(data = events_study_df, aes(x = StartDate, xend = StartDate, y = min.index, yend = max.index), linetype = "solid", color = "grey", size = 0.25, alpha = 0.25) +  
   geom_segment(data = events_study_df, aes(x = EndDate, xend = EndDate, y = min.index, yend = max.index), linetype = "solid", color = "grey", size = 0.25, alpha = 0.25) +  
   
-  # Placing event numbers at the midpoint of the event window for easier identification.
-  geom_text(data = events_study_df, aes(x = Midpoint, y = LabelY, label = EventNumber), angle = 90, vjust = 0.5, hjust = 0) +  
-  
   # Drawing a shaded area under the 'Net' line representing the difference between the 'Net' series and the origin.
   geom_ribbon(data = TCI_asym_return, aes(x = Date, ymin = pmin(Net, 0), ymax = pmax(Net, 0)), fill = "lightgrey", alpha = 1) +  
   
@@ -437,6 +443,9 @@ ggplot() +
   # Plotting the line for the 'All' series with a solid line.
   geom_line(data = TCI_asym_return, aes(x = Date, y = all, color = "All"), size = 0.8) +
   
+  # Placing event numbers at the midpoint of the event window for easier identification.
+  geom_text(data = events_study_df, aes(x = Midpoint, y = LabelY, label = EventNumber), angle = 90, vjust = 0.5, hjust = 0) +  
+
   # Adding labels and title to the plot.
   labs(x = "Year", y = "Total Connectedness Index (TCI)", title = "Total Asymmetric Connectedness Event Study") + 
   
@@ -496,7 +505,7 @@ run_tvp_var_for_horizons <- function(asym_series) {
 
   for (H in horizons) {
     DCA = list()
-    spec = c("all", "positive", "negative")
+    spec = c("All", "Positive", "Negative")
     
     # Run the ConnectednessApproach for each series
     for (i in 1:length(asym_series)) {
@@ -622,7 +631,7 @@ run_tvp_var_for_window_sizes <- function(asym_series) {
   for (window_size in window_sizes) {
     cat("Running model with window size:", window_size, "\n")  # Debugging check to print window size
     DCA = list()
-    spec = c("all", "positive", "negative")
+    spec = c("All", "Positive", "Negative")
     
     # Run the ConnectednessApproach for each series
     for (i in 1:length(asym_series)) {
@@ -726,3 +735,4 @@ ggplot(TCI_Net_ws_long, aes(x = Date, y = TCI, color = Window_Size)) +
 ggsave(file.path(AsymWTesting, "TCI_Net_Window_Sizes.png"), width = 8, height = 6, dpi = 300, bg = "white")
 
 #----------------------------------
+
