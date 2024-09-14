@@ -25,6 +25,7 @@ source("Packages.R")
 Asym <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness Minnesota"
 AsymHTesting <- paste0(Asym, "/Horizon Test")
 AsymWTesting <- paste0(Asym, "/Window Test")
+AsymLagTesting <- paste0(Asym, "/Lag Test")
 
 # Ensure the directory exists
 if (!dir.exists(Asym)) {
@@ -230,8 +231,8 @@ run_and_save_tvp_var <- function(asym_series, suffix) {
   combined_html_lines <- c(html_lines[[1]], "<br><br>", html_lines[[2]], "<br><br>", html_lines[[3]])
 
   # Add final caption at the bottom
-  # caption_connectedness <- '<tr><td colspan="7" style="text-align:left;">Aligning with Adekoya et al. (2021), this analysis uses first-order VARs (p = 1) as selected by Schwarz information criterion, with 10-step-ahead forecasts and a Minnesota Prior.</td></tr>'
-  caption_connectedness <- '<tr><td colspan="7" style="text-align:left;">Aligning with Antonakakis et al. (2020), this analysis uses first-order VARs (p = 1) as selected by Schwarz information criterion, with 10-step-ahead forecasts and a Bayes Prior.</td></tr>'
+  caption_connectedness <- '<tr><td colspan="7" style="text-align:left;">Aligning with Adekoya et al. (2021), this analysis uses first-order VARs (p = 1) as selected by Schwarz information criterion, with 10-step-ahead forecasts and a Minnesota Prior.</td></tr>'
+  # caption_connectedness <- '<tr><td colspan="7" style="text-align:left;">Aligning with Antonakakis et al. (2020), this analysis uses first-order VARs (p = 1) as selected by Schwarz information criterion, with 10-step-ahead forecasts and a Bayes Prior.</td></tr>'
 
   # Insert final caption
   table_end_index <- which(grepl("</table>", combined_html_lines, fixed = TRUE))[length(which(grepl("</table>", combined_html_lines, fixed = TRUE)))]
@@ -246,7 +247,7 @@ run_and_save_tvp_var <- function(asym_series, suffix) {
   ## Plots ##
   # Total Connectedness Index (TCI)
   png(file.path(Asym, paste0("TCI_Asymmetric_", suffix, ".png")), width = 800, height = 600)
-  PlotTCI(DCA[[1]], ca = list(DCA[[2]], DCA[[3]]), ylim = c(0, 75))
+  PlotTCI(DCA[[1]], ca = list(DCA[[2]], DCA[[3]]), ylim = c(0, 50))
   dev.off()
 
   # Dynamic directional spillovers TO markets
@@ -256,12 +257,12 @@ run_and_save_tvp_var <- function(asym_series, suffix) {
 
   # Dynamic directional spillovers FROM markets
   png(file.path(Asym, paste0("FROM_Asymmetric_", suffix, ".png")), width = 800, height = 600)
-  PlotFROM(DCA[[1]], ca = list(DCA[[2]], DCA[[3]]), ylim = c(0, 100))
+  PlotFROM(DCA[[1]], ca = list(DCA[[2]], DCA[[3]]), ylim = c(0, 75))
   dev.off()
 
   # Net Total Directional Connectedness
   png(file.path(Asym, paste0("NET_Asymmetric_", suffix, ".png")), width = 800, height = 600)
-  PlotNET(DCA[[1]], ca = list(DCA[[2]], DCA[[3]]), ylim = c(-100, 100))
+  PlotNET(DCA[[1]], ca = list(DCA[[2]], DCA[[3]]), ylim = c(-50, 50))
   dev.off()
   
   return(DCA)
@@ -736,3 +737,132 @@ ggsave(file.path(AsymWTesting, "TCI_Net_Window_Sizes.png"), width = 8, height = 
 
 #----------------------------------
 
+#----------------------------------
+
+# Lag Order Sensitivity Analysis
+
+#----------------------------------
+
+# Ensure the directory exists
+if (!dir.exists(AsymLagTesting)) {
+  dir.create(AsymLagTesting)
+}
+
+# Set working directory
+setwd(AsymLagTesting)
+
+# List of lag orders to test
+lag_orders <- c(1, 2, 3)
+
+# Initialize empty data frames to store results for each lag order
+TCI_All_lag_df <- data.frame(Date = as.Date(character()))
+TCI_Net_lag_df <- data.frame(Date = as.Date(character()))
+
+# Function to run TVP-VAR for each lag order and save TCI results
+run_tvp_var_for_lag_orders <- function(asym_series) {
+    
+  for (lag_order in lag_orders) {
+    cat("Running model with lag order:", lag_order, "\n")  # Debugging check to print lag order
+    DCA = list()
+    spec = c("All", "Positive", "Negative")
+    
+    # Run the ConnectednessApproach for each series
+    for (i in 1:length(asym_series)) {
+      DCA[[i]] <- suppressMessages(ConnectednessApproach(asym_series[[i]], 
+                    model = "TVP-VAR",
+                    connectedness = "Time",
+                    nlag = lag_order,  # Ensure lag order is passed here
+                    nfore = H,
+                    window.size = window_size,  # Use a fixed window size
+                    VAR_config = PriorChoice))
+    }
+    
+    # Extract TCI series for the "All" and "Net" series
+    TCI_asym_return <- as.data.frame(DCA[[1]]$TCI)
+    colnames(TCI_asym_return) <- paste0("All_Lag", lag_order)  # Label based on lag order
+    
+    # Add DCA_return[[2]]$TCI as Positive and DCA_return[[3]]$TCI as Negative
+    TCI_asym_return$Positive <- DCA[[2]]$TCI
+    TCI_asym_return$Negative <- DCA[[3]]$TCI
+    
+    # Add the Date column
+    TCI_asym_return$Date <- as.Date(rownames(TCI_asym_return))
+    
+    # Create a series called Net by subtracting the Negative series from the Positive series
+    TCI_asym_return$Net <- TCI_asym_return$Positive - TCI_asym_return$Negative
+    
+    # Debugging check to print sample TCI values to verify variation
+    cat("Sample TCI values for lag order", lag_order, ":\n")
+    print(head(TCI_asym_return))
+    
+    # Store the "All" and "Net" series in their respective data frames
+    if (nrow(TCI_All_lag_df) == 0) {
+      TCI_All_lag_df <- TCI_asym_return[, c("Date", paste0("All_Lag", lag_order))]
+      TCI_Net_lag_df <- TCI_asym_return[, c("Date", "Net")]
+      colnames(TCI_Net_lag_df)[2] <- paste0("Net_Lag", lag_order)
+    } else {
+      TCI_All_lag_df <- merge(TCI_All_lag_df, TCI_asym_return[, c("Date", paste0("All_Lag", lag_order))], by = "Date", all = TRUE)
+      TCI_Net_lag_df <- merge(TCI_Net_lag_df, TCI_asym_return[, c("Date", "Net")], by = "Date", all = TRUE)
+      colnames(TCI_Net_lag_df)[ncol(TCI_Net_lag_df)] <- paste0("Net_Lag", lag_order)
+    }
+  }
+  
+  return(list(TCI_All_lag_df = TCI_All_lag_df, TCI_Net_lag_df = TCI_Net_lag_df))
+}
+
+# Run the TVP-VAR for the different lag orders and collect the data frames
+result <- run_tvp_var_for_lag_orders(asym_return)
+
+# Extract the data frames from the result list
+TCI_All_lag_df <- result$TCI_All_lag_df
+TCI_Net_lag_df <- result$TCI_Net_lag_df
+
+# Save the TCI data frames to CSV files
+write.csv(TCI_All_lag_df, file.path(AsymLagTesting, "TCI_All_Lag_Orders.csv"), row.names = FALSE)
+write.csv(TCI_Net_lag_df, file.path(AsymLagTesting, "TCI_Net_Lag_Orders.csv"), row.names = FALSE)
+
+# Pivot the data to long format for easier plotting with ggplot2
+TCI_All_lag_long <- pivot_longer(TCI_All_lag_df, cols = starts_with("All_Lag"), names_to = "Lag_Order", values_to = "TCI")
+TCI_Net_lag_long <- pivot_longer(TCI_Net_lag_df, cols = starts_with("Net_Lag"), names_to = "Lag_Order", values_to = "TCI")
+
+# Plot TCI All series for each lag order
+ggplot(TCI_All_lag_long, aes(x = Date, y = TCI, color = Lag_Order)) +
+  geom_line(size = 1) +
+  labs(x = "Year", y = "Total Connectedness Index (TCI)", title = "Total Connectedness Index Across Lag Orders") +
+  theme_minimal() +
+  theme(
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    plot.title = element_text(size = 14, face = "bold"),
+    legend.position = "bottom",
+    panel.grid.major = element_line(color = "grey80", size = 0.5),
+    panel.grid.minor = element_line(color = "grey90", size = 0.25),
+    axis.line.x.bottom = element_line(color = "black", size = 1),
+    axis.line.y.left = element_line(color = "black", size = 1)
+  ) +
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y")
+
+# Save the plot
+ggsave(file.path(AsymLagTesting, "TCI_All_Lag_Orders.png"), width = 8, height = 6, dpi = 300, bg = "white")
+
+# Plot TCI Net series for each lag order
+ggplot(TCI_Net_lag_long, aes(x = Date, y = TCI, color = Lag_Order)) +
+  geom_line(size = 1) +
+  labs(x = "Year", y = "Net Connectedness Index (Net TCI)", title = "Net Connectedness Index Across Lag Orders") +
+  theme_minimal() +
+  theme(
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    plot.title = element_text(size = 14, face = "bold"),
+    legend.position = "bottom",
+    panel.grid.major = element_line(color = "grey80", size = 0.5),
+    panel.grid.minor = element_line(color = "grey90", size = 0.25),
+    axis.line.x.bottom = element_line(color = "black", size = 1),
+    axis.line.y.left = element_line(color = "black", size = 1)
+  ) +
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y")
+
+# Save the plot
+ggsave(file.path(AsymLagTesting, "TCI_Net_Lag_Orders.png"), width = 8, height = 6, dpi = 300, bg = "white")
