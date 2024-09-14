@@ -80,6 +80,17 @@ duplicated_rows <- secondary_market_data_trimmed[duplicated(secondary_market_dat
 max_date <- max(secondary_market_data_trimmed$Date)
 min_date <- min(secondary_market_data_trimmed$Date)
 
+# Outlier check for Hubei ETS
+# Identify outliers in Hubei ETS for November 2023
+hubei_ets_data <- secondary_market_data_trimmed[secondary_market_data_trimmed$Date >= "2023-11-01" & secondary_market_data_trimmed$Date <= "2023-11-30", c("Date", "Hubei (Pilot) Emissions Trading System")]
+
+# Replace 2023-11-24 with previuos day value
+hubei_ets_data[hubei_ets_data$Date == "2023-11-24", "Hubei (Pilot) Emissions Trading System"] <- hubei_ets_data[hubei_ets_data$Date == "2023-11-23", "Hubei (Pilot) Emissions Trading System"]
+
+# Remove outlier from Hubei ETS in November 2023
+# Replace 2023-11-24 with previous day value
+secondary_market_data_trimmed[secondary_market_data_trimmed$Date == "2023-11-24", "Hubei (Pilot) Emissions Trading System"] <- secondary_market_data_trimmed[secondary_market_data_trimmed$Date == "2023-11-23", "Hubei (Pilot) Emissions Trading System"]
+
 #---------------------------------------
 
 #### Plot the data - Allowance Price ####
