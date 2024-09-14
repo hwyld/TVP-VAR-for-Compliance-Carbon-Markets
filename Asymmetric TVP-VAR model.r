@@ -21,8 +21,8 @@ setwd(Git)
 source("Packages.R")
 
 # Replication paper directory
-Asym <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness Bayes"
-# Asym <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness Minnesota"
+# Asym <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness Bayes"
+Asym <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness Minnesota"
 AsymHTesting <- paste0(Asym, "/Horizon Test")
 AsymWTesting <- paste0(Asym, "/Window Test")
 
@@ -60,8 +60,8 @@ vol_zoo <- zoo(vol_df[, -1], order.by = as.Date(vol_df$Date))
 #----------------------------------
 
 # Limit to only EUA, NZU, HBEA, and CCA + two extensions in KAU and ACCU
-return_zoo <- return_zoo[, c("EUA", "NZU", "HBEA", "CCA", "KAU", "ACCU")]
-vol_zoo <- vol_zoo[, c("EUA", "NZU", "HBEA", "CCA", "KAU", "ACCU")]
+return_zoo <- return_zoo[, c("EUA", "NZU", "HBEA", "CCA", "KAU", "ACCU","RGGI")]
+vol_zoo <- vol_zoo[, c("EUA", "NZU", "HBEA", "CCA", "KAU", "ACCU","RGGI")]
 
 # If there are any NAs or infinite values, removing or imputing them
 return_zoo <- na.omit(return_zoo)  # Removes entire rows where any NA values are present
@@ -161,14 +161,14 @@ asym_vol <- prepare_asym_series(vol_zoo)
 # weaker restrictions  allow the model to capture these irregularities and extreme behavior more naturally. 
 # It offers flexibility in capturing shifts in connectedness caused by large market moves or political events.   
 
-  PriorChoice =list(TVPVAR=list(kappa1=forgetting_factor, kappa2=decay_factor, prior="BayesPrior"))
+# PriorChoice =list(TVPVAR=list(kappa1=forgetting_factor, kappa2=decay_factor, prior="BayesPrior"))
 
 # MinnesotaPrior
 
 # Prior shrinks the parameters toward an assumption that each market is primarily driven by its own dynamics rather than by shocks from other markets
 # The Minnesota prior works well in cases where theoretical or empirical justification supports weak relationships between variables. 
 
-# PriorChoice = list(TVPVAR = list(kappa1 = forgetting_factor_asym, kappa2 = decay_factor_asym, prior="MinnesotaPrior", gamma=0.1))
+PriorChoice = list(TVPVAR = list(kappa1 = forgetting_factor_asym, kappa2 = decay_factor_asym, prior="MinnesotaPrior", gamma=0.1))
 
 # Function to run TVP-VAR, save FEVD, and generate plots
 run_and_save_tvp_var <- function(asym_series, suffix) {
@@ -246,7 +246,7 @@ run_and_save_tvp_var <- function(asym_series, suffix) {
   ## Plots ##
   # Total Connectedness Index (TCI)
   png(file.path(Asym, paste0("TCI_Asymmetric_", suffix, ".png")), width = 800, height = 600)
-  PlotTCI(DCA[[1]], ca = list(DCA[[2]], DCA[[3]]), ylim = c(0, 50))
+  PlotTCI(DCA[[1]], ca = list(DCA[[2]], DCA[[3]]), ylim = c(0, 75))
   dev.off()
 
   # Dynamic directional spillovers TO markets
@@ -261,7 +261,7 @@ run_and_save_tvp_var <- function(asym_series, suffix) {
 
   # Net Total Directional Connectedness
   png(file.path(Asym, paste0("NET_Asymmetric_", suffix, ".png")), width = 800, height = 600)
-  PlotNET(DCA[[1]], ca = list(DCA[[2]], DCA[[3]]), ylim = c(-50, 50))
+  PlotNET(DCA[[1]], ca = list(DCA[[2]], DCA[[3]]), ylim = c(-100, 100))
   dev.off()
   
   return(DCA)
@@ -331,7 +331,7 @@ category_colors <- c(
         "covid-19" = "purple"
 )
 
-max.index <- 60
+max.index <- 80
 
 # Add an EventNumber column to the TCI dataframe mapping the event number to repeat between the StartDate and EndDate
 # Here, we are adjusting the event study dates to ensure they fall within the TCI data's date range.
@@ -409,7 +409,7 @@ ggsave(file.path(Asym, paste0("TCI_Asymmetric_with_events_all_r", ".png")), widt
 #----------------------------------
 
 min.index <- 0
-max.index <- 50
+max.index <- 80
 
 # Add an EventNumber column to the TCI dataframe mapping the event number to repeat between the StartDate and EndDate
 # Here, we are adjusting the event study dates to ensure they fall within the TCI data's date range.

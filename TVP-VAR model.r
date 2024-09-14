@@ -55,8 +55,8 @@ vol_zoo <- zoo(vol_df[, -1], order.by = as.Date(vol_df$Date))
 #----------------------------------
 
 # Limit to only EUA, NZU, HBEA, and CCA + two extensions in KAU and ACCU
-return_zoo <- return_zoo[, c("EUA", "NZU", "HBEA", "CCA", "KAU", "ACCU")]
-vol_zoo <- vol_zoo[, c("EUA", "NZU", "HBEA", "CCA", "KAU", "ACCU")]
+return_zoo <- return_zoo[, c("EUA", "NZU", "HBEA", "CCA", "KAU", "ACCU","RGGI")]
+vol_zoo <- vol_zoo[, c("EUA", "NZU", "HBEA", "CCA", "KAU", "ACCU","RGGI")]
 
 # If there are any NAs or infinite values, removing or imputing them
 return_zoo <- na.omit(return_zoo)  # Removes entire rows where any NA values are present

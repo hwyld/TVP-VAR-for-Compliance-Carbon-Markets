@@ -229,8 +229,7 @@ html_table <- kable(merged_dates, format = "html", escape = FALSE) %>%
                 position = "center", 
                 stripe_color = "gray!15", 
                 stripe_index = seq(1, nrow(merged_dates), 2)) %>%
-  add_header_above(c(" " = 1, "Summary Statistics" = ncol(merged_dates) - 1)) %>%
-  kable_styling(latex_options = c("striped", "hold_position"))
+  add_header_above(c(" " = 1, "Summary Statistics" = ncol(merged_dates) - 1))
 
 # Save the HTML table to a file
 writeLines(html_table, "Summary_Statistics.html")
@@ -246,6 +245,7 @@ writeLines(html_table, "Summary_Statistics.html")
   # May 2021, start of UKA time series
   # Jul 2021, start of CEA time series
   # Dec 2022, start of WCA time series
+  # 
 
 # ICAP Data includes NZU, EUA, HBEA, CEA, KAU
 # Clearblue Data includes ACCU, UKA, WCA, CCA
@@ -326,7 +326,10 @@ html_table <- kable(merged_dates, format = "html", escape = FALSE)
 # Save the HTML table to a file
 writeLines(html_table, "Summary_Statistics_Research_Data.html")
 
+#---------------------------------------
+
 # Export to Git
+
 #---------------------------------------
 # Publish both data sets to Git
 setwd(Git)

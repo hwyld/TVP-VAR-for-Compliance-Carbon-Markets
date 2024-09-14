@@ -43,8 +43,13 @@ read_and_format_csv <- function(file) {
   # Initially read only the first two rows to get the column names and number of columns
   temp_df <- read.csv(file, nrows = 2, header = FALSE)
   col_names <- as.character(unlist(temp_df[1, ])) # Save the column names from the first row
+  suffix <- tools::file_path_sans_ext(basename(file)) # Get the file name without extension
+  col_names <- paste(col_names, suffix, sep = "_") # Add the suffix to the column names
   num_cols <- ncol(temp_df)
   
+  # Rename the first column to DateTime
+  col_names[1] <- "DateTime"
+
   # Print the column names and number of columns
   print("Column names:")
   print(col_names)
@@ -106,13 +111,14 @@ merged_data <- merged_data[order(merged_data$DateTime), ]
 # KAU Closing Price = Korean Allowance Close , 
 # Washington Carbon Allowance Front December = Washington Front December - ICE , 
 # CCA - Front December - ICE = CCA Front December - ICE
-cols_to_keep <- c("DateTime", "ACCU Spot Price - RepuTex", "CEA Closing Price", "Front December - ICE.x", "Front December - ICE.y", "NZUs - Spot", "KAU Closing Price", "Washington Carbon Allowance Front December", "CCA - Front December - ICE")
+# RGGI - Front Month - ICE = Front Month - ICE.y
+cols_to_keep <- c("DateTime", "ACCU Spot Price - RepuTex_australia", "CEA Closing Price_china", "Front December - ICE_eu_ets", "Front December - ICE_uk_ets", "NZUs - Spot_new_zealand", "KAU Closing Price_south_korea", "Washington Carbon Allowance Front December_washington", "CCA - Front December - ICE_WCI","Front Month - ICE_RGGI")
 
 # Subset the dataframe to only include these columns
 merged_data <- merged_data[, cols_to_keep]
 
 # Rename the columns
-colnames(merged_data) <- c("Date", "ACCU", "CEA", "EUA", "UKA", "NZU", "KAU", "WCA", "CCA")
+colnames(merged_data) <- c("Date", "ACCU", "CEA", "EUA", "UKA", "NZU", "KAU", "WCA", "CCA","RGGI")
 
 ### Data Trimming  ###
 
@@ -158,6 +164,8 @@ plot_all_columns <- function(data) {
 # Call the function to plot the data
 p <- plot_all_columns(merged_data_trimmed)
 
+p
+
 # Save the plot
 htmlwidgets::saveWidget(p, "Clearblue_Allowance_Price_Plot.html")
 
@@ -175,6 +183,3 @@ write.csv(merged_data_trimmed, "Clearblue_market_data.csv")
 # Final HTML file
 htmlwidgets::saveWidget(p, "Clearblue_Allowance_Price_Plot.html")
 #---------------------------------------
-
-# stop the script
-stop()

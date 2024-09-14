@@ -226,13 +226,13 @@ volatility <- xts(volatility, order.by = first_day_of_week)
 ### SUBSET DATA ###
 #---------------------------------------
 
-# # Trim the data to start when NZU data set begins on 05/01/2010
-# Research_Data_weekly_returns <- weekly_returns["2018-01-08/"]
-# Research_Data_weekly_volatility <- volatility["2018-01-08/"]
+# Trim the data to start when NZU data set begins on 05/01/2010
+Research_Data_weekly_returns <- weekly_returns["2018-01-08/2024-08-23"]
+Research_Data_weekly_volatility <- volatility["2018-01-08/2024-08-23"]
 
 # No filter
-Research_Data_weekly_returns <- weekly_returns
-Research_Data_weekly_volatility <- volatility
+# Research_Data_weekly_returns <- weekly_returns
+# Research_Data_weekly_volatility <- volatility
 
 # Replace Volatility column names with the original names
 colnames(Research_Data_weekly_volatility) <- colnames(Research_Data_weekly_returns)
@@ -381,12 +381,12 @@ summary_stats_returns <- apply(Research_Data_weekly_returns, 2, calculate_descri
 summary_stats_volatility <- apply(Research_Data_weekly_volatility, 2, calculate_descriptive_stats)
 
 # Add first non-NA date to the summary statistics
-summary_stats_returns <- rbind(summary_stats_returns, returns_stats$First_Non_NA_Date)
-summary_stats_volatility <- rbind(summary_stats_volatility, volatility_stats$First_Non_NA_Date)
+# summary_stats_returns <- rbind(summary_stats_returns, returns_stats$First_Non_NA_Date)
+# summary_stats_volatility <- rbind(summary_stats_volatility, volatility_stats$First_Non_NA_Date)
 
 # Add row name for the first non-NA date
-rownames(summary_stats_returns)[nrow(summary_stats_returns)] <- "Start Date"
-rownames(summary_stats_volatility)[nrow(summary_stats_volatility)] <- "Start Date"
+# rownames(summary_stats_returns)[nrow(summary_stats_returns)] <- "Start Date"
+# rownames(summary_stats_volatility)[nrow(summary_stats_volatility)] <- "Start Date"
 
 # Transpose to match required format
 summary_stats_returns <- t(summary_stats_returns)
@@ -396,13 +396,15 @@ summary_stats_volatility <- t(summary_stats_volatility)
 summary_stats_returns_df <- as.data.frame(summary_stats_returns)
 summary_stats_volatility_df <- as.data.frame(summary_stats_volatility)
 
-# Convert the "Start Date" column to date format
-summary_stats_returns_df$`Start Date` <- as.Date(summary_stats_returns_df$`Start Date`, origin = "1970-01-01")
-summary_stats_volatility_df$`Start Date` <- as.Date(summary_stats_volatility_df$`Start Date`, origin = "1970-01-01")
+# # Convert the "Start Date" column to date format
+# summary_stats_returns_df$`Start Date` <- as.Date(summary_stats_returns_df$`Start Date`, origin = "1970-01-01")
+# summary_stats_volatility_df$`Start Date` <- as.Date(summary_stats_volatility_df$`Start Date`, origin = "1970-01-01")
 
 # Set the column names
-colnames(summary_stats_returns_df) <- c("Mean", "Min", "Max", "St.dev.", "Skew.", "Kurt.", "ADF", "Start Date")
-colnames(summary_stats_volatility_df) <- c("Mean", "Min", "Max", "St.dev.", "Skew.", "Kurt.", "ADF", "Start Date")
+# colnames(summary_stats_returns_df) <- c("Mean", "Min", "Max", "St.dev.", "Skew.", "Kurt.", "ADF", "Start Date")
+# colnames(summary_stats_volatility_df) <- c("Mean", "Min", "Max", "St.dev.", "Skew.", "Kurt.", "ADF", "Start Date")
+colnames(summary_stats_returns_df) <- c("Mean", "Min", "Max", "St.dev.", "Skew.", "Kurt.", "ADF")
+colnames(summary_stats_volatility_df) <- c("Mean", "Min", "Max", "St.dev.", "Skew.", "Kurt.", "ADF")
 
 # Print the results
 print("Descriptive Statistics for Weekly Returns:")
@@ -412,8 +414,8 @@ print("Descriptive Statistics for Weekly Volatility:")
 print(summary_stats_volatility_df)
 
 # Order by oldest start date
-summary_stats_returns_df <- summary_stats_returns_df[order(summary_stats_returns_df$`Start Date`), ]
-summary_stats_volatility_df <- summary_stats_volatility_df[order(summary_stats_volatility_df$`Start Date`), ]
+# summary_stats_returns_df <- summary_stats_returns_df[order(summary_stats_returns_df$`Start Date`), ]
+# summary_stats_volatility_df <- summary_stats_volatility_df[order(summary_stats_volatility_df$`Start Date`), ]
 
 # transpose the data frames
 summary_stats_returns <- t(t(summary_stats_returns_df))
@@ -428,12 +430,18 @@ stargazer(summary_stats_returns,
           out= "Summary Statistics for Returns.html"
         )
 
+# Export as a table to HTML
+
 stargazer(summary_stats_volatility, 
           type = "html", 
           digits=3, align=TRUE,
           intercept.bottom=FALSE,
           title = "Summary Statistics for Volatility",
           out= "Summary Statistics for Volatility.html")
+
+# Export as csv
+write.csv(summary_stats_returns_df, "Summary Statistics for Returns.csv", row.names = TRUE)
+write.csv(summary_stats_volatility_df, "Summary Statistics for Volatility.csv", row.names = TRUE)      
 
 #---------------------------------------
 

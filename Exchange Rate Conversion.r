@@ -167,7 +167,7 @@ print(icap_comparison)
 ## Clearblue Data Conversion ##
 
 # Relate the column names in the ICAP data to the currency codes
-clearblue_currency_codes <- c("AUD", "CNY", "EUR", "GBP", "NZD", "KRW", "USD", "USD")
+clearblue_currency_codes <- c("AUD", "CNY", "EUR", "GBP", "NZD", "KRW", "USD", "USD", "USD")
 
 # Create a copy for EUR denominated prices
 clearblue_data_eur <- clearblue_data
