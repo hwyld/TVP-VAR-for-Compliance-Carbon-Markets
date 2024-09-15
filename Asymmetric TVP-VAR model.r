@@ -332,7 +332,7 @@ category_colors <- c(
         "covid-19" = "purple"
 )
 
-max.index <- 80
+max.index <- 50
 
 # Add an EventNumber column to the TCI dataframe mapping the event number to repeat between the StartDate and EndDate
 # Here, we are adjusting the event study dates to ensure they fall within the TCI data's date range.
@@ -410,7 +410,7 @@ ggsave(file.path(Asym, paste0("TCI_Asymmetric_with_events_all_r", ".png")), widt
 #----------------------------------
 
 min.index <- 0
-max.index <- 80
+# max.index <- 50
 
 # Add an EventNumber column to the TCI dataframe mapping the event number to repeat between the StartDate and EndDate
 # Here, we are adjusting the event study dates to ensure they fall within the TCI data's date range.
@@ -531,7 +531,7 @@ run_tvp_var_for_horizons <- function(asym_series) {
     TCI_asym_return$Date <- as.Date(rownames(TCI_asym_return))
     
     # Create a series called Net by subtracting the Negative series from the Positive series
-    TCI_asym_return$Net <- TCI_asym_return$Positive - TCI_asym_return$Negative
+    TCI_asym_return$Net <- TCI_asym_return$Negative - TCI_asym_return$Positive
     
     # Store the "All" and "Net" series in their respective data frames
     if (nrow(TCI_All_df) == 0) {
@@ -657,7 +657,7 @@ run_tvp_var_for_window_sizes <- function(asym_series) {
     TCI_asym_return$Date <- as.Date(rownames(TCI_asym_return))
     
     # Create a series called Net by subtracting the Negative series from the Positive series
-    TCI_asym_return$Net <- TCI_asym_return$Positive - TCI_asym_return$Negative
+    TCI_asym_return$Net <- TCI_asym_return$Negative - TCI_asym_return$Positive
     
     # Debugging check to print sample TCI values to verify variation
     cat("Sample TCI values for window size", window_size, ":\n")
@@ -789,7 +789,7 @@ run_tvp_var_for_lag_orders <- function(asym_series) {
     TCI_asym_return$Date <- as.Date(rownames(TCI_asym_return))
     
     # Create a series called Net by subtracting the Negative series from the Positive series
-    TCI_asym_return$Net <- TCI_asym_return$Positive - TCI_asym_return$Negative
+    TCI_asym_return$Net <- TCI_asym_return$Negative - TCI_asym_return$Positive
     
     # Debugging check to print sample TCI values to verify variation
     cat("Sample TCI values for lag order", lag_order, ":\n")
@@ -866,3 +866,87 @@ ggplot(TCI_Net_lag_long, aes(x = Date, y = TCI, color = Lag_Order)) +
 
 # Save the plot
 ggsave(file.path(AsymLagTesting, "TCI_Net_Lag_Orders.png"), width = 8, height = 6, dpi = 300, bg = "white")
+
+
+#----------------------------------
+
+# Weekly return event study
+
+#----------------------------------
+
+# set wd
+setwd(Git)
+
+# Find the data to include only the relevant dates for the events (event 12 for COVID, event 16 for Russia-Ukraine Crisis)
+
+Covid.StartDate <- events_study_df$StartDate[events_study_df$EventNumber == 12] - 14
+Covid.EndDate <- events_study_df$EndDate[events_study_df$EventNumber == 12] + 14
+
+RUC.StartDate <- events_study_df$StartDate[events_study_df$EventNumber == 16] - 14
+RUC.EndDate <- events_study_df$EndDate[events_study_df$EventNumber == 16] + 14
+
+# Subset the data for Covid-19 event
+Covid_Data <- subset(return_df, Date >= Covid.StartDate & Date <= Covid.EndDate)
+
+# Convert to data frame
+Covid_Data <- as.data.frame(Covid_Data)
+
+# Subset the data for Russia-Ukraine Crisis event
+RUC_Data <- subset(return_df, Date >= RUC.StartDate & Date <= RUC.EndDate)
+
+# Convert to data frame
+RUC_Data <- as.data.frame(RUC_Data)
+
+# Ensure Date column is in Date format for both datasets
+Covid_Data$Date <- as.Date(Covid_Data$Date)
+RUC_Data$Date <- as.Date(RUC_Data$Date)
+
+# Melt the data for plotting
+Covid_Data_long <- melt(Covid_Data, id.vars = "Date", variable.name = "Series", value.name = "Weekly_Return")
+RUC_Data_long <- melt(RUC_Data, id.vars = "Date", variable.name = "Series", value.name = "Weekly_Return")
+
+# Create the plot for Covid-19 event
+p1 <- ggplot(Covid_Data_long, aes(x = Date, y = Weekly_Return, color = Series)) +
+  geom_line(size = 1) +
+  labs(title = "Event 12 - Covid Return Study", x = "Date", y = "Weekly Return") +
+  scale_x_date(date_breaks = "1 month", date_labels = "%b %Y") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 20, face = "bold", hjust = 0.5),
+    axis.title = element_text(size = 16),
+    axis.text = element_text(size = 14),
+    legend.title = element_text(size = 16),
+    legend.text = element_text(size = 14),
+    legend.position = "bottom",  # Place the legend at the bottom
+    panel.grid.major = element_line(color = "grey80", size = 0.5),
+    panel.grid.minor = element_line(color = "grey90", size = 0.25)
+  )
+
+# Create the plot for Russia-Ukraine Crisis event
+p2 <- ggplot(RUC_Data_long, aes(x = Date, y = Weekly_Return, color = Series)) +
+  geom_line(size = 1) +
+  labs(title = "Event 16 - Russia-Ukraine Crisis Return Study", x = "Date", y = "Weekly Return") +
+  scale_x_date(date_breaks = "1 month", date_labels = "%b %Y") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 20, face = "bold", hjust = 0.5),
+    axis.title = element_text(size = 16),
+    axis.text = element_text(size = 14),
+    legend.title = element_text(size = 16),
+    legend.text = element_text(size = 14),
+    legend.position = "bottom",  # Place the legend at the bottom
+    panel.grid.major = element_line(color = "grey80", size = 0.5),
+    panel.grid.minor = element_line(color = "grey90", size = 0.25)
+  )
+
+# Convert the ggplot objects to plotly objects
+p1_plotly <- ggplotly(p1)
+p2_plotly <- ggplotly(p2)
+
+# Export the plotly objects as HTML files
+htmlwidgets::saveWidget(p1_plotly, file = file.path(Git, "Covid_Return_Study.html"))
+htmlwidgets::saveWidget(p2_plotly, file = file.path(Git, "RUC_Return_Study.html"))
+
+# Export as PNG files
+ggsave(file.path(Git, "Covid_Return_Study.png"), p1, width = 8, height = 6, dpi = 300, bg = "white")
+ggsave(file.path(Git, "RUC_Return_Study.png"), p2, width = 8, height = 6, dpi = 300, bg = "white")
