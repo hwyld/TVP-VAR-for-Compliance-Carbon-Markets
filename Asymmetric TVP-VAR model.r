@@ -26,6 +26,7 @@ Asym <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-fo
 AsymHTesting <- paste0(Asym, "/Horizon Test")
 AsymWTesting <- paste0(Asym, "/Window Test")
 AsymLagTesting <- paste0(Asym, "/Lag Test")
+AsymGammaTesting <- paste0(Asym, "/Gamma Test")
 
 # Ensure the directory exists
 if (!dir.exists(Asym)) {
@@ -169,7 +170,7 @@ asym_vol <- prepare_asym_series(vol_zoo)
 # Prior shrinks the parameters toward an assumption that each market is primarily driven by its own dynamics rather than by shocks from other markets
 # The Minnesota prior works well in cases where theoretical or empirical justification supports weak relationships between variables. 
 
-PriorChoice = list(TVPVAR = list(kappa1 = forgetting_factor_asym, kappa2 = decay_factor_asym, prior="MinnesotaPrior", gamma=0.1))
+PriorChoice = list(TVPVAR = list(kappa1 = forgetting_factor_asym, kappa2 = decay_factor_asym, prior="MinnesotaPrior", gamma=0.1)) # Gamma is the shrinkage parameter for the Minnesota prior based on Antonakakis et al. (2020)
 
 # Function to run TVP-VAR, save FEVD, and generate plots
 run_and_save_tvp_var <- function(asym_series, suffix) {
@@ -879,11 +880,11 @@ setwd(Git)
 
 # Find the data to include only the relevant dates for the events (event 12 for COVID, event 16 for Russia-Ukraine Crisis)
 
-Covid.StartDate <- events_study_df$StartDate[events_study_df$EventNumber == 12] - 14
-Covid.EndDate <- events_study_df$EndDate[events_study_df$EventNumber == 12] + 14
+Covid.StartDate <- events_study_df$StartDate[events_study_df$EventNumber == 12] - 6*5 # 6 weeks before the event
+Covid.EndDate <- events_study_df$EndDate[events_study_df$EventNumber == 12] + 6*5 # 6 weeks after the event
 
-RUC.StartDate <- events_study_df$StartDate[events_study_df$EventNumber == 16] - 14
-RUC.EndDate <- events_study_df$EndDate[events_study_df$EventNumber == 16] + 14
+RUC.StartDate <- events_study_df$StartDate[events_study_df$EventNumber == 16] - 6*5 # 6 weeks before the event
+RUC.EndDate <- events_study_df$EndDate[events_study_df$EventNumber == 16] + 6*5 # 6 weeks after the event
 
 # Subset the data for Covid-19 event
 Covid_Data <- subset(return_df, Date >= Covid.StartDate & Date <= Covid.EndDate)
@@ -950,3 +951,144 @@ htmlwidgets::saveWidget(p2_plotly, file = file.path(Git, "RUC_Return_Study.html"
 # Export as PNG files
 ggsave(file.path(Git, "Covid_Return_Study.png"), p1, width = 8, height = 6, dpi = 300, bg = "white")
 ggsave(file.path(Git, "RUC_Return_Study.png"), p2, width = 8, height = 6, dpi = 300, bg = "white")
+
+#----------------------------------
+
+#----------------------------------
+
+# Connectedness Sensitivity Analysis
+# Minnesota Prior Gamma Sensitivity Analysis
+
+#----------------------------------
+
+# Ensure the directory exists
+if (!dir.exists(AsymGammaTesting)) {
+  dir.create(AsymGammaTesting)
+}
+
+# Set working directory
+setwd(AsymGammaTesting)
+
+# List of gamma values to test
+gamma_values <- c(0.1, 1, 5, 10, 15)
+
+# Initialize empty data frames to store results for each gamma value
+TCI_All_gamma_df <- data.frame(Date = as.Date(character()))
+TCI_Net_gamma_df <- data.frame(Date = as.Date(character()))
+
+# Function to run TVP-VAR for each gamma and save TCI results
+run_tvp_var_for_gamma <- function(asym_series) {
+    
+  for (gamma_value in gamma_values) {
+    cat("Running model with gamma:", gamma_value, "\n")  # Debugging check to print gamma value
+
+    # Update the PriorChoice with the current gamma value
+    PriorChoice <- list(TVPVAR = list(kappa1 = forgetting_factor_asym, 
+                                      kappa2 = decay_factor_asym, 
+                                      prior = "MinnesotaPrior", 
+                                      gamma = gamma_value))  # Ensure gamma is updated
+
+    DCA = list()
+    spec = c("All", "Positive", "Negative")
+    
+    # Run the ConnectednessApproach for each series
+    for (i in 1:length(asym_series)) {
+      DCA[[i]] <- suppressMessages(ConnectednessApproach(asym_series[[i]], 
+                    model = "TVP-VAR",
+                    connectedness = "Time",
+                    nlag = lag_order,
+                    nfore = H,
+                    window.size = window_size,
+                    VAR_config = PriorChoice))  # Pass updated PriorChoice
+    }
+    
+    # Extract TCI series for the "All" and "Net" series
+    TCI_asym_return <- as.data.frame(DCA[[1]]$TCI)
+    colnames(TCI_asym_return) <- paste0("All_G", gamma_value)  # Label based on gamma
+    
+    # Add DCA_return[[2]]$TCI as Positive and DCA_return[[3]]$TCI as Negative
+    TCI_asym_return$Positive <- DCA[[2]]$TCI
+    TCI_asym_return$Negative <- DCA[[3]]$TCI
+    
+    # Add the Date column
+    TCI_asym_return$Date <- as.Date(rownames(TCI_asym_return))
+    
+    # Create a series called Net by subtracting the Negative series from the Positive series
+    TCI_asym_return$Net <- TCI_asym_return$Negative - TCI_asym_return$Positive
+    
+    # Debugging check to print sample TCI values to verify variation
+    cat("Sample TCI values for gamma", gamma_value, ":\n")
+    print(head(TCI_asym_return))
+    
+    # Store the "All" and "Net" series in their respective data frames
+    if (nrow(TCI_All_gamma_df) == 0) {
+      TCI_All_gamma_df <- TCI_asym_return[, c("Date", paste0("All_G", gamma_value))]
+      TCI_Net_gamma_df <- TCI_asym_return[, c("Date", "Net")]
+      colnames(TCI_Net_gamma_df)[2] <- paste0("Net_G", gamma_value)
+    } else {
+      TCI_All_gamma_df <- merge(TCI_All_gamma_df, TCI_asym_return[, c("Date", paste0("All_G", gamma_value))], by = "Date", all = TRUE)
+      TCI_Net_gamma_df <- merge(TCI_Net_gamma_df, TCI_asym_return[, c("Date", "Net")], by = "Date", all = TRUE)
+      colnames(TCI_Net_gamma_df)[ncol(TCI_Net_gamma_df)] <- paste0("Net_G", gamma_value)
+    }
+  }
+  
+  return(list(TCI_All_gamma_df = TCI_All_gamma_df, TCI_Net_gamma_df = TCI_Net_gamma_df))
+}
+
+# Run the TVP-VAR for the different gamma values and collect the data frames
+result <- run_tvp_var_for_gamma(asym_return)
+
+# Extract the data frames from the result list
+TCI_All_gamma_df <- result$TCI_All_gamma_df
+TCI_Net_gamma_df <- result$TCI_Net_gamma_df
+
+# Save the TCI data frames to CSV files
+write.csv(TCI_All_gamma_df, file.path(AsymGammaTesting, "TCI_All_Gamma_Values.csv"), row.names = FALSE)
+write.csv(TCI_Net_gamma_df, file.path(AsymGammaTesting, "TCI_Net_Gamma_Values.csv"), row.names = FALSE)
+
+# Pivot the data to long format for easier plotting with ggplot2
+TCI_All_gamma_long <- pivot_longer(TCI_All_gamma_df, cols = starts_with("All_G"), names_to = "Gamma", values_to = "TCI")
+TCI_Net_gamma_long <- pivot_longer(TCI_Net_gamma_df, cols = starts_with("Net_G"), names_to = "Gamma", values_to = "TCI")
+
+# Plot TCI All series for each gamma value
+ggplot(TCI_All_gamma_long, aes(x = Date, y = TCI, color = Gamma)) +
+  geom_line(size = 1) +
+  labs(x = "Year", y = "Total Connectedness Index (TCI)", title = "Total Connectedness Index Across Gamma Values") +
+  theme_minimal() +
+  theme(
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    plot.title = element_text(size = 14, face = "bold"),
+    legend.position = "bottom",
+    panel.grid.major = element_line(color = "grey80", size = 0.5),
+    panel.grid.minor = element_line(color = "grey90", size = 0.25),
+    axis.line.x.bottom = element_line(color = "black", size = 1),
+    axis.line.y.left = element_line(color = "black", size = 1)
+  ) +
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y")
+
+# Save the plot
+ggsave(file.path(AsymGammaTesting, "TCI_All_Gamma_Values.png"), width = 8, height = 6, dpi = 300, bg = "white")
+
+# Plot TCI Net series for each gamma value
+ggplot(TCI_Net_gamma_long, aes(x = Date, y = TCI, color = Gamma)) +
+  geom_line(size = 1) +
+  labs(x = "Year", y = "Net Connectedness Index (NegTCI - PosTCI)", title = "Net Connectedness Index Across Gamma Values") +
+  theme_minimal() +
+  theme(
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    plot.title = element_text(size = 14, face = "bold"),
+    legend.position = "bottom",
+    panel.grid.major = element_line(color = "grey80", size = 0.5),
+    panel.grid.minor = element_line(color = "grey90", size = 0.25),
+    axis.line.x.bottom = element_line(color = "black", size = 1),
+    axis.line.y.left = element_line(color = "black", size = 1)
+  ) +
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y")
+
+# Save the plot
+ggsave(file.path(AsymGammaTesting, "TCI_Net_Gamma_Values.png"), width = 8, height = 6, dpi = 300, bg = "white")
+
