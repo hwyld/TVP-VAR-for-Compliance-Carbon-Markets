@@ -266,6 +266,9 @@ run_and_save_tvp_var <- function(asym_series, suffix) {
   PlotNET(DCA[[1]], ca = list(DCA[[2]], DCA[[3]]), ylim = c(-50, 50))
   dev.off()
   
+  # Save the prior matrix to a CSV file
+  
+
   return(DCA)
 }
 
@@ -970,7 +973,7 @@ if (!dir.exists(AsymGammaTesting)) {
 setwd(AsymGammaTesting)
 
 # List of gamma values to test
-gamma_values <- c(0.1, 1, 5, 10, 15)
+gamma_values <- c(0.1, 1, 2, 5, 10, 15)
 
 # Initialize empty data frames to store results for each gamma value
 TCI_All_gamma_df <- data.frame(Date = as.Date(character()))
