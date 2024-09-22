@@ -21,8 +21,8 @@ setwd(Git)
 source("Packages.R")
 
 # Replication paper directory
-# Asym <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness Bayes"
-Asym <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness Minnesota"
+Asym <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness Bayes"
+# Asym <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness Minnesota"
 AsymHTesting <- paste0(Asym, "/Horizon Test")
 AsymWTesting <- paste0(Asym, "/Window Test")
 AsymLagTesting <- paste0(Asym, "/Lag Test")
@@ -142,7 +142,7 @@ asym_vol <- prepare_asym_series(vol_zoo)
 
   lag_order <- 1
   H <- 10
-  window_size <- 200
+  window_size <- 50
 
 # TVP-VAR Parameters
 # Follows Adekoya, Akinseye, Antonakakis, Chatziantoniou, Gabauer, and Oliyide (2021)
@@ -156,21 +156,22 @@ asym_vol <- prepare_asym_series(vol_zoo)
   forgetting_factor <- 0.99
   decay_factor <- 0.96
 
-
+# Diagonal value of variance-covariance matrix
+gamma.setting <- 5
 
 # BayesPrior
 # more appropriate for capturing large swings in connectedness, particularly around extreme events
 # weaker restrictions  allow the model to capture these irregularities and extreme behavior more naturally. 
 # It offers flexibility in capturing shifts in connectedness caused by large market moves or political events.   
 
-# PriorChoice =list(TVPVAR=list(kappa1=forgetting_factor, kappa2=decay_factor, prior="BayesPrior"))
+PriorChoice =list(TVPVAR=list(kappa1=forgetting_factor, kappa2=decay_factor, prior="BayesPrior"))
 
 # MinnesotaPrior
 
 # Prior shrinks the parameters toward an assumption that each market is primarily driven by its own dynamics rather than by shocks from other markets
 # The Minnesota prior works well in cases where theoretical or empirical justification supports weak relationships between variables. 
 
-PriorChoice = list(TVPVAR = list(kappa1 = forgetting_factor_asym, kappa2 = decay_factor_asym, prior="MinnesotaPrior", gamma=0.1)) # Gamma is the shrinkage parameter for the Minnesota prior based on Antonakakis et al. (2020)
+# PriorChoice = list(TVPVAR = list(kappa1 = forgetting_factor_asym, kappa2 = decay_factor_asym, prior="MinnesotaPrior", gamma=gamma.setting)) # Gamma is the shrinkage parameter for the Minnesota prior based on Antonakakis et al. (2020)
 
 # Function to run TVP-VAR, save FEVD, and generate plots
 run_and_save_tvp_var <- function(asym_series, suffix) {
@@ -232,8 +233,8 @@ run_and_save_tvp_var <- function(asym_series, suffix) {
   combined_html_lines <- c(html_lines[[1]], "<br><br>", html_lines[[2]], "<br><br>", html_lines[[3]])
 
   # Add final caption at the bottom
-  caption_connectedness <- '<tr><td colspan="7" style="text-align:left;">Aligning with Adekoya et al. (2021), this analysis uses first-order VARs (p = 1) as selected by Schwarz information criterion, with 10-step-ahead forecasts and a Minnesota Prior.</td></tr>'
-  # caption_connectedness <- '<tr><td colspan="7" style="text-align:left;">Aligning with Antonakakis et al. (2020), this analysis uses first-order VARs (p = 1) as selected by Schwarz information criterion, with 10-step-ahead forecasts and a Bayes Prior.</td></tr>'
+  # caption_connectedness <- '<tr><td colspan="7" style="text-align:left;">Aligning with Adekoya et al. (2021), this analysis uses first-order VARs (p = 1) as selected by Schwarz information criterion, with 10-step-ahead forecasts and a Minnesota Prior.</td></tr>'
+  caption_connectedness <- '<tr><td colspan="7" style="text-align:left;">Aligning with Antonakakis et al. (2020), this analysis uses first-order VARs (p = 1) as selected by Schwarz information criterion, with 10-step-ahead forecasts and a Bayes Prior.</td></tr>'
 
   # Insert final caption
   table_end_index <- which(grepl("</table>", combined_html_lines, fixed = TRUE))[length(which(grepl("</table>", combined_html_lines, fixed = TRUE)))]
@@ -248,7 +249,7 @@ run_and_save_tvp_var <- function(asym_series, suffix) {
   ## Plots ##
   # Total Connectedness Index (TCI)
   png(file.path(Asym, paste0("TCI_Asymmetric_", suffix, ".png")), width = 800, height = 600)
-  PlotTCI(DCA[[1]], ca = list(DCA[[2]], DCA[[3]]), ylim = c(0, 50))
+  PlotTCI(DCA[[1]], ca = list(DCA[[2]], DCA[[3]]), ylim = c(0, 100))
   dev.off()
 
   # Dynamic directional spillovers TO markets
@@ -258,16 +259,28 @@ run_and_save_tvp_var <- function(asym_series, suffix) {
 
   # Dynamic directional spillovers FROM markets
   png(file.path(Asym, paste0("FROM_Asymmetric_", suffix, ".png")), width = 800, height = 600)
-  PlotFROM(DCA[[1]], ca = list(DCA[[2]], DCA[[3]]), ylim = c(0, 75))
+  PlotFROM(DCA[[1]], ca = list(DCA[[2]], DCA[[3]]), ylim = c(0, 100))
   dev.off()
 
   # Net Total Directional Connectedness
   png(file.path(Asym, paste0("NET_Asymmetric_", suffix, ".png")), width = 800, height = 600)
-  PlotNET(DCA[[1]], ca = list(DCA[[2]], DCA[[3]]), ylim = c(-50, 50))
+  PlotNET(DCA[[1]], ca = list(DCA[[2]], DCA[[3]]), ylim = c(-100, 100))
   dev.off()
   
-  # Save the prior matrix to a CSV file
+  # Save the prior 
+  prior <- MinnesotaPrior(gamma = gamma.setting, k = ncol(asym_series[[1]]), nlag = lag_order)
+  prior.bayes <- BayesPrior(return_zoo, size = window_size, nlag = lag_order)
+  prior.bayes.unrestricted <- BayesPrior(return_zoo, nlag = lag_order)
+
+  # Convert the prior matrix to a data frame
+  prior <- as.data.frame(prior)
+  prior.bayes <- as.data.frame(prior.bayes)
+  prior.bayes.unrestricted <- as.data.frame(prior.bayes.unrestricted)
   
+  # Save the prior matrix to a CSV file
+  write.csv(prior, file.path(Asym, paste0("Prior_", suffix, ".csv")), row.names = FALSE)
+  write.csv(prior.bayes, file.path(Asym, paste0("Prior_Bayes_", suffix, ".csv")), row.names = FALSE)
+  write.csv(prior.bayes.unrestricted, file.path(Asym, paste0("Prior_Bayes_Unrestricted_", suffix, ".csv")), row.names = FALSE)
 
   return(DCA)
 }
@@ -336,7 +349,7 @@ category_colors <- c(
         "covid-19" = "purple"
 )
 
-max.index <- 50
+max.index <- 100
 
 # Add an EventNumber column to the TCI dataframe mapping the event number to repeat between the StartDate and EndDate
 # Here, we are adjusting the event study dates to ensure they fall within the TCI data's date range.
@@ -909,9 +922,9 @@ RUC_Data$Date <- as.Date(RUC_Data$Date)
 Covid_Data_long <- melt(Covid_Data, id.vars = "Date", variable.name = "Series", value.name = "Weekly_Return")
 RUC_Data_long <- melt(RUC_Data, id.vars = "Date", variable.name = "Series", value.name = "Weekly_Return")
 
-# Create the plot for Covid-19 event
+# Create the scatter plot for Covid-19 event
 p1 <- ggplot(Covid_Data_long, aes(x = Date, y = Weekly_Return, color = Series)) +
-  geom_line(size = 1) +
+  geom_point(size = 2) +
   labs(title = "Event 12 - Covid Return Study", x = "Date", y = "Weekly Return") +
   scale_x_date(date_breaks = "1 month", date_labels = "%b %Y") +
   theme_minimal() +
@@ -926,9 +939,9 @@ p1 <- ggplot(Covid_Data_long, aes(x = Date, y = Weekly_Return, color = Series)) 
     panel.grid.minor = element_line(color = "grey90", size = 0.25)
   )
 
-# Create the plot for Russia-Ukraine Crisis event
+# Create the scatter plot for Russia-Ukraine Crisis event
 p2 <- ggplot(RUC_Data_long, aes(x = Date, y = Weekly_Return, color = Series)) +
-  geom_line(size = 1) +
+  geom_point(size = 2) +
   labs(title = "Event 16 - Russia-Ukraine Crisis Return Study", x = "Date", y = "Weekly Return") +
   scale_x_date(date_breaks = "1 month", date_labels = "%b %Y") +
   theme_minimal() +
