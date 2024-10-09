@@ -21,8 +21,8 @@ setwd(Git)
 source("Packages.R")
 
 # Replication paper directory
-Asym <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness Bayes"
-# Asym <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness Minnesota"
+# Asym <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness Bayes"
+Asym <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness Minnesota"
 AsymHTesting <- paste0(Asym, "/Horizon Test")
 AsymWTesting <- paste0(Asym, "/Window Test")
 AsymLagTesting <- paste0(Asym, "/Lag Test")
@@ -144,6 +144,7 @@ asym_vol <- prepare_asym_series(vol_zoo)
   H <- 10
   window_size <- 50
 
+
 # TVP-VAR Parameters
 # Follows Adekoya, Akinseye, Antonakakis, Chatziantoniou, Gabauer, and Oliyide (2021)
 # https://gabauerdavid.github.io/ConnectednessApproach/2022Adekoya
@@ -164,14 +165,14 @@ gamma.setting <- 5
 # weaker restrictions  allow the model to capture these irregularities and extreme behavior more naturally. 
 # It offers flexibility in capturing shifts in connectedness caused by large market moves or political events.   
 
-PriorChoice =list(TVPVAR=list(kappa1=forgetting_factor, kappa2=decay_factor, prior="BayesPrior"))
+# PriorChoice =list(TVPVAR=list(kappa1=forgetting_factor, kappa2=decay_factor, prior="BayesPrior"))
 
 # MinnesotaPrior
 
 # Prior shrinks the parameters toward an assumption that each market is primarily driven by its own dynamics rather than by shocks from other markets
 # The Minnesota prior works well in cases where theoretical or empirical justification supports weak relationships between variables. 
 
-# PriorChoice = list(TVPVAR = list(kappa1 = forgetting_factor_asym, kappa2 = decay_factor_asym, prior="MinnesotaPrior", gamma=gamma.setting)) # Gamma is the shrinkage parameter for the Minnesota prior based on Antonakakis et al. (2020)
+PriorChoice = list(TVPVAR = list(kappa1 = forgetting_factor_asym, kappa2 = decay_factor_asym, prior="MinnesotaPrior", gamma=gamma.setting)) # Gamma is the shrinkage parameter for the Minnesota prior based on Antonakakis et al. (2020)
 
 # Function to run TVP-VAR, save FEVD, and generate plots
 run_and_save_tvp_var <- function(asym_series, suffix) {
@@ -233,8 +234,8 @@ run_and_save_tvp_var <- function(asym_series, suffix) {
   combined_html_lines <- c(html_lines[[1]], "<br><br>", html_lines[[2]], "<br><br>", html_lines[[3]])
 
   # Add final caption at the bottom
-  # caption_connectedness <- '<tr><td colspan="7" style="text-align:left;">Aligning with Adekoya et al. (2021), this analysis uses first-order VARs (p = 1) as selected by Schwarz information criterion, with 10-step-ahead forecasts and a Minnesota Prior.</td></tr>'
-  caption_connectedness <- '<tr><td colspan="7" style="text-align:left;">Aligning with Antonakakis et al. (2020), this analysis uses first-order VARs (p = 1) as selected by Schwarz information criterion, with 10-step-ahead forecasts and a Bayes Prior.</td></tr>'
+  caption_connectedness <- '<tr><td colspan="7" style="text-align:left;">Aligning with Adekoya et al. (2021), this analysis uses first-order VARs (p = 1) as selected by Schwarz information criterion, with 10-step-ahead forecasts and a Minnesota Prior.</td></tr>'
+  # caption_connectedness <- '<tr><td colspan="7" style="text-align:left;">Aligning with Antonakakis et al. (2020), this analysis uses first-order VARs (p = 1) as selected by Schwarz information criterion, with 10-step-ahead forecasts and a Bayes Prior.</td></tr>'
 
   # Insert final caption
   table_end_index <- which(grepl("</table>", combined_html_lines, fixed = TRUE))[length(which(grepl("</table>", combined_html_lines, fixed = TRUE)))]
@@ -267,6 +268,16 @@ run_and_save_tvp_var <- function(asym_series, suffix) {
   PlotNET(DCA[[1]], ca = list(DCA[[2]], DCA[[3]]), ylim = c(-100, 100))
   dev.off()
   
+  # Dynamic influence connectedness plot
+  png(file.path(Asym, paste0("INF_Asymmetric_", suffix, ".png")), width = 800, height = 600)
+  PlotINF(DCA[[1]], ca = list(DCA[[2]], DCA[[3]]), ylim = c(-100, 100))
+  dev.off()  
+
+    # Dynamic pairwise connectedness plot
+  png(file.path(Asym, paste0("PCI_Asymmetric_", suffix, ".png")), width = 800, height = 600)
+  PlotPCI(DCA[[1]], ca = list(DCA[[2]], DCA[[3]]), ylim = c(-100, 100))
+  dev.off()  
+
   # Save the prior 
   prior <- MinnesotaPrior(gamma = gamma.setting, k = ncol(asym_series[[1]]), nlag = lag_order)
   prior.bayes <- BayesPrior(return_zoo, size = window_size, nlag = lag_order)
@@ -288,7 +299,6 @@ run_and_save_tvp_var <- function(asym_series, suffix) {
 # Run TVP-VAR and generate plots for both returns and volatility
 DCA_return <- run_and_save_tvp_var(asym_return, "r")
 #DCA_vol <- run_and_save_tvp_var(asym_vol, "v")
-
 # Save the TCI series from DCA_return for use in chart below, create a dataframe for the event study
 TCI_asym_return <- as.data.frame(DCA_return[[1]]$TCI)
 
@@ -426,8 +436,8 @@ ggsave(file.path(Asym, paste0("TCI_Asymmetric_with_events_all_r", ".png")), widt
 
 #----------------------------------
 
-min.index <- 0
-# max.index <- 50
+min.index <- -50
+max.index <- 100
 
 # Add an EventNumber column to the TCI dataframe mapping the event number to repeat between the StartDate and EndDate
 # Here, we are adjusting the event study dates to ensure they fall within the TCI data's date range.
@@ -1107,4 +1117,111 @@ ggplot(TCI_Net_gamma_long, aes(x = Date, y = TCI, color = Gamma)) +
 
 # Save the plot
 ggsave(file.path(AsymGammaTesting, "TCI_Net_Gamma_Values.png"), width = 8, height = 6, dpi = 300, bg = "white")
+
+
+
+
+# Recreate TVP-VAR model with estimation results to prepare for confidence interval analysis
+
+  # Save the prior 
+prior <- MinnesotaPrior(gamma = gamma.setting, k = ncol(return_zoo), nlag = lag_order)
+prior.bayes <- BayesPrior(return_zoo, size = window_size, nlag = lag_order)
+prior.bayes.unrestricted <- BayesPrior(return_zoo, nlag = lag_order)
+
+
+# Function to run TVP-VAR, save FEVD, calculate SE and CI, and generate FEVD plots with confidence intervals
+run_and_save_tvp_var <- function(return_zoo, suffix) {
+  
+  # Initialize lists to store outputs
+  fit_list <- list()   # Store the TVPVAR model fit objects
+  se_list <- list()    # Store the standard errors of the coefficients
+  ci_list <- list()    # Store the confidence intervals for the FEVD
+  
+  cat("Running TVP-VAR for return series\n")
+  
+  # Fit TVP-VAR model for the return series
+  fit <- TVPVAR(return_zoo, configuration = list(nlag = lag_order, prior = prior, l = c(forgetting_factor, decay_factor)))
+  fit_list[['return_series']] <- fit  # Store the fit object
+  
+  # Extract time-specific dimensions
+  num_time_points <- dim(fit$B_t)[3]  # Number of time points
+  num_vars <- dim(fit$B_t)[1]  # Number of variables in the VAR
+  
+  # Initialize matrices to store FEVD, standard errors, and confidence intervals
+  fevd_matrix <- array(NA, dim = c(num_vars, num_vars, num_time_points))  # FEVD matrix
+  ci_upper_matrix <- array(NA, dim = c(num_vars, num_vars, num_time_points))  # Upper confidence intervals
+  ci_lower_matrix <- array(NA, dim = c(num_vars, num_vars, num_time_points))  # Lower confidence intervals
+  
+  # Loop over each time point to calculate FEVD, standard errors, and CIs
+  for (t in 1:num_time_points) {
+    cat("Calculating FEVD for time step:", t, "\n")
+    
+    # Extract time-specific VAR coefficients (B_t) and covariances (Q_t)
+    Phi_t <- fit$B_t[, , t]
+    Sigma_t <- fit$Q_t[, , t]
+    
+    # Compute FEVD for this time step
+    fevd_t <- FEVD(Phi = Phi_t, Sigma = Sigma_t, nfore = 10, type = "time", generalized = TRUE)$FEVD
+  
+    # Compute the TCI for this time step
+    dca = ConnectednessTable(fevd_t)
+
+    # Save the TCI for this time step
+    TCI_t <- dca$TCI
+
+    # Store FEVD results
+    fevd_matrix[, , t] <- fevd_t
+    
+    # Extract standard errors (posterior variances) for coefficients (B) and covariances (Q)
+    se_B <- sqrt(fit$B_t[, , t])
+    se_Q <- sqrt(fit$Q_t[, , t])
+
+    # Calculate confidence intervals
+    ci_upper_matrix[, , t] <- fevd_t + 1.96 * se_B  # Upper bound of CI (mean + 1.96 * SE)
+    ci_lower_matrix[, , t] <- fevd_t - 1.96 * se_B  # Lower bound of CI (mean - 1.96 * SE)
+  }
+  
+  # Store the results in lists
+  se_list[['return_series']] <- se_B
+  ci_list[['return_series']] <- list(lower = ci_lower_matrix, upper = ci_upper_matrix)
+  
+  ## FEVD Plotting with Confidence Intervals ##
+  
+  # Average FEVD across variables for plotting
+  fevd_df <- data.frame(Date = 1:num_time_points, FEVD = apply(fevd_matrix, 3, mean))  # Take mean FEVD for each time point
+  
+  # Convert confidence intervals to data frames for plotting
+  ci_upper_df <- data.frame(Date = 1:num_time_points, Upper_CI = apply(ci_upper_matrix, 3, mean))
+  ci_lower_df <- data.frame(Date = 1:num_time_points, Lower_CI = apply(ci_lower_matrix, 3, mean))
+  
+  # Merge data for plotting
+  plot_data <- merge(fevd_df, ci_lower_df, by = "Date")
+  plot_data <- merge(plot_data, ci_upper_df, by = "Date")
+  
+  # Create the FEVD plot with confidence intervals using ggplot2
+  p <- ggplot(plot_data, aes(x = Date, y = FEVD)) +
+    geom_line(size = 1) +  # FEVD line
+    geom_ribbon(aes(ymin = Lower_CI, ymax = Upper_CI), alpha = 0.2) +  # Confidence interval ribbon
+    labs(title = paste("FEVD with Confidence Intervals - return_series"),
+         x = "Time", y = "Forecast Error Variance Decomposition (FEVD)") +
+    theme_minimal() +
+    theme(
+      plot.title = element_text(size = 20, face = "bold", hjust = 0.5),
+      axis.title = element_text(size = 16),
+      axis.text = element_text(size = 14),
+      legend.title = element_text(size = 16),
+      legend.text = element_text(size = 14),
+      legend.position = "bottom",
+      panel.grid.major = element_line(color = "grey80", size = 0.5),
+      panel.grid.minor = element_line(color = "grey90", size = 0.25)
+    )
+  
+  # Save the FEVD plot as PNG
+  ggsave(file.path(Asym, paste0("FEVD_with_CI_return_series_", suffix, ".png")), p, width = 10, height = 6, dpi = 300, bg = "white")
+  
+  return(list(fit_list = fit_list, FEVD_matrix = fevd_matrix, se_list = se_list, ci_list = ci_list))
+}
+
+# Running TVP-VAR and generating FEVD plots with confidence intervals for returns
+DCA_return_fit <- run_and_save_tvp_var(return_zoo, "r")
 

@@ -337,24 +337,37 @@ sum(is.na(Research_Data_weekly_volatility))
 #### Descriptive statistics ####
 ## From Paper: "The descriptive statistics of the weekly returns and weekly volatility are presented in Table 2 in Panel A and B."
 #---------------------------------------
-library(moments) # for skewness and kurtosis
+library(moments)  # for skewness and kurtosis
+library(ggplot2)  # for plotting
+library(forecast) # for ACF calculation and Ljung-Box test
+library(stargazer) # for table export
 
-# Function to perform ADF test and extract the test statistic
-perform_adf_test <- function(series) {
-  # Remove NAs from the series
+#### Descriptive statistics with ACF p-value calculation ####
+
+# Function to perform the autocorrelation test at lag 1 and return the autocorrelation value
+perform_autocorr_test <- function(series) {
+  series <- na.omit(series)
+  acf_result <- acf(series, plot = FALSE, lag.max = 1)
+  return(acf_result$acf[2])  # Return the ACF value at lag 1
+}
+
+# Function to perform the Ljung-Box test at lag 1 and return the p-value
+perform_autocorr_pvalue <- function(series) {
   series <- na.omit(series)
   
   # Ensure the series has enough data points after removing NAs
   if (length(series) < 10) {
-    return(NA) # Not enough data to perform ADF test
+    return(NA)  # Not enough data to perform autocorrelation test
   }
   
-  # Perform the ADF test
-  test_result <- ur.df(series, type = "drift", selectlags = "BIC")
-  return(test_result@teststat[1]) # Extract the test statistic
+  # Perform Ljung-Box test at lag 1
+  test_result <- Box.test(series, lag = 1, type = "Ljung-Box")
+  
+  # Return the p-value of the test
+  return(test_result$p.value)
 }
 
-# Function to calculate descriptive statistics
+# Function to calculate descriptive statistics and autocorrelation p-value
 calculate_descriptive_stats <- function(series) {
   mean_val <- mean(series, na.rm = TRUE)
   min_val <- min(series, na.rm = TRUE)
@@ -363,30 +376,24 @@ calculate_descriptive_stats <- function(series) {
   skew_val <- skewness(series, na.rm = TRUE)
   kurt_val <- kurtosis(series, na.rm = TRUE)
   
-  # ADF test
-  adf_val <- perform_adf_test(series)
+  # Autocorrelation at lag 1 and its p-value
+  autocorr_val <- perform_autocorr_test(series)
+  acf_pvalue <- perform_autocorr_pvalue(series)
   
-  # Return rounded results
+  # Return rounded results, including the autocorrelation p-value
   return(c(mean = round(mean_val, 3), 
            min = round(min_val, 3), 
            max = round(max_val, 3), 
            sd = round(sd_val, 3), 
            skew = round(skew_val, 3), 
-           kurtosis = round(kurt_val, 3), 
-           ADF = round(adf_val, 3)))
+           kurt = round(kurt_val, 3), 
+           autocorr = round(autocorr_val, 3), 
+           p_value = round(acf_pvalue, 3)))
 }
 
 # Apply the function to each column of the datasets using apply()
 summary_stats_returns <- apply(Research_Data_weekly_returns, 2, calculate_descriptive_stats)
 summary_stats_volatility <- apply(Research_Data_weekly_volatility, 2, calculate_descriptive_stats)
-
-# Add first non-NA date to the summary statistics
-# summary_stats_returns <- rbind(summary_stats_returns, returns_stats$First_Non_NA_Date)
-# summary_stats_volatility <- rbind(summary_stats_volatility, volatility_stats$First_Non_NA_Date)
-
-# Add row name for the first non-NA date
-# rownames(summary_stats_returns)[nrow(summary_stats_returns)] <- "Start Date"
-# rownames(summary_stats_volatility)[nrow(summary_stats_volatility)] <- "Start Date"
 
 # Transpose to match required format
 summary_stats_returns <- t(summary_stats_returns)
@@ -396,52 +403,83 @@ summary_stats_volatility <- t(summary_stats_volatility)
 summary_stats_returns_df <- as.data.frame(summary_stats_returns)
 summary_stats_volatility_df <- as.data.frame(summary_stats_volatility)
 
-# # Convert the "Start Date" column to date format
-# summary_stats_returns_df$`Start Date` <- as.Date(summary_stats_returns_df$`Start Date`, origin = "1970-01-01")
-# summary_stats_volatility_df$`Start Date` <- as.Date(summary_stats_volatility_df$`Start Date`, origin = "1970-01-01")
+# Set the column names, including the autocorrelation at lag 1 and its p-value
+colnames(summary_stats_returns_df) <- c("Mean", "Min", "Max", "St.dev.", "Skew", "Kurtosis", "Autocorr(1)", "p-value(Autocorr)")
+colnames(summary_stats_volatility_df) <- c("Mean", "Min", "Max", "St.dev.", "Skew", "Kurtosis", "Autocorr(1)", "p-value(Autocorr)")
 
-# Set the column names
-# colnames(summary_stats_returns_df) <- c("Mean", "Min", "Max", "St.dev.", "Skew.", "Kurt.", "ADF", "Start Date")
-# colnames(summary_stats_volatility_df) <- c("Mean", "Min", "Max", "St.dev.", "Skew.", "Kurt.", "ADF", "Start Date")
-colnames(summary_stats_returns_df) <- c("Mean", "Min", "Max", "St.dev.", "Skew.", "Kurt.", "ADF")
-colnames(summary_stats_volatility_df) <- c("Mean", "Min", "Max", "St.dev.", "Skew.", "Kurt.", "ADF")
-
-# Print the results
+# Print the results to check if formatting is correct
 print("Descriptive Statistics for Weekly Returns:")
 print(summary_stats_returns_df)
 
 print("Descriptive Statistics for Weekly Volatility:")
 print(summary_stats_volatility_df)
 
-# Order by oldest start date
-# summary_stats_returns_df <- summary_stats_returns_df[order(summary_stats_returns_df$`Start Date`), ]
-# summary_stats_volatility_df <- summary_stats_volatility_df[order(summary_stats_volatility_df$`Start Date`), ]
-
-# transpose the data frames
-summary_stats_returns <- t(t(summary_stats_returns_df))
-summary_stats_volatility <- t(t(summary_stats_volatility_df))
-
-## Export the tables to HTML
-stargazer(summary_stats_returns, 
+# Convert the data frame into the appropriate format for stargazer
+## Export the tables to HTML with a note on ACF specification
+stargazer(summary_stats_returns_df, 
           type = "html", 
-          digits=3, align=TRUE,
-          intercept.bottom=FALSE,
-          title = "Summary Statistics for Returns",
-          out= "Summary Statistics for Returns.html"
-        )
+          digits = 3, 
+          summary = FALSE,
+          align = TRUE,
+          title = "Summary Statistics for Returns (with ACF p-values)",
+          notes = "ACF is calculated at lag 1 using the Ljung-Box test. The p-value indicates the significance of autocorrelation at lag 1.",
+          out = "Summary_Statistics_for_Returns_with_ACF_p_values.html")
 
-# Export as a table to HTML
-
-stargazer(summary_stats_volatility, 
+stargazer(summary_stats_volatility_df, 
           type = "html", 
-          digits=3, align=TRUE,
-          intercept.bottom=FALSE,
-          title = "Summary Statistics for Volatility",
-          out= "Summary Statistics for Volatility.html")
+          digits = 3, 
+          summary = FALSE,
+          align = TRUE,
+          title = "Summary Statistics for Volatility (with ACF p-values)",
+          notes = "ACF is calculated at lag 1 using the Ljung-Box test. The p-value indicates the significance of autocorrelation at lag 1.",
+          out = "Summary_Statistics_for_Volatility_with_ACF_p_values.html")
 
-# Export as csv
-write.csv(summary_stats_returns_df, "Summary Statistics for Returns.csv", row.names = TRUE)
-write.csv(summary_stats_volatility_df, "Summary Statistics for Volatility.csv", row.names = TRUE)      
+# Export as CSV
+write.csv(summary_stats_returns_df, "Summary_Statistics_for_Returns_with_ACF_p_values.csv", row.names = TRUE)
+write.csv(summary_stats_volatility_df, "Summary_Statistics_for_Volatility_with_ACF_p_values.csv", row.names = TRUE)
+
+#### ACF Plotting ####
+# Function to calculate and plot ACF for each series
+calculate_acf <- function(series, series_name, lag_max = 20) {
+  # Remove NAs
+  series <- na.omit(series)
+  
+  # Calculate the ACF
+  acf_result <- acf(series, plot = FALSE, lag.max = lag_max)
+  
+  # Convert ACF result to a data frame for plotting
+  acf_df <- data.frame(
+    Lag = acf_result$lag[-1],  # Lag values (excluding the 0th lag)
+    ACF = acf_result$acf[-1]   # ACF values
+  )
+  
+  # Create ACF plot
+  p <- ggplot(acf_df, aes(x = Lag, y = ACF)) +
+    geom_bar(stat = "identity", fill = "steelblue", width = 0.5) +
+    labs(title = paste0("Autocorrelation Function (ACF) for ", series_name),
+         x = "Lag", y = "ACF") +
+    theme_minimal() +
+    theme(
+      plot.title = element_text(size = 20, face = "bold", hjust = 0.5),
+      axis.title = element_text(size = 16),
+      axis.text = element_text(size = 14)
+    )
+  
+  # Save the plot
+  ggsave(file.path(getwd(), paste0("ACF_", series_name, ".png")), plot = p, width = 8, height = 6)
+  
+  return(p)  # Return the plot object for further use if needed
+}
+
+## ACF Plotting for each series ##
+# Loop through the series in returns and volatility and generate ACF plots
+for (colname in colnames(Research_Data_weekly_returns)) {
+  calculate_acf(Research_Data_weekly_returns[, colname], series_name = colname)
+}
+
+for (colname in colnames(Research_Data_weekly_volatility)) {
+  calculate_acf(Research_Data_weekly_volatility[, colname], series_name = colname)
+}
 
 #---------------------------------------
 
