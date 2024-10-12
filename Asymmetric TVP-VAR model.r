@@ -299,11 +299,207 @@ run_and_save_tvp_var <- function(asym_series, suffix) {
 # Run TVP-VAR and generate plots for both returns and volatility
 DCA_return <- run_and_save_tvp_var(asym_return, "r")
 #DCA_vol <- run_and_save_tvp_var(asym_vol, "v")
+# Initialize empty lists to store the dataframes for each specification
+TCI_dfs <- list()
+TO_dfs <- list()
+FROM_dfs <- list()
+NET_dfs <- list()
+NPT_dfs <- list()
+
+# Specifications to loop over: All, Positive, and Negative
+spec <- c("All", "Positive", "Negative")
+
+# Loop through each specification (1 for All, 2 for Positive, 3 for Negative)
+for (i in 1:3) {
+  
+  # Extract and process the TCI series for the current specification
+  TCI_df <- as.data.frame(DCA_return[[i]]$TCI)
+  colnames(TCI_df) <- spec[i]
+  TCI_df$Date <- as.Date(rownames(TCI_df))
+  
+  # Extract and process the TO series for the current specification
+  TO_df <- as.data.frame(DCA_return[[i]]$TO)
+  colnames(TO_df) <- colnames(DCA_return[[i]]$TO)
+  TO_df$Date <- as.Date(rownames(TO_df))
+  
+  # Extract and process the FROM series for the current specification
+  FROM_df <- as.data.frame(DCA_return[[i]]$FROM)
+  colnames(FROM_df) <- colnames(DCA_return[[i]]$FROM)
+  FROM_df$Date <- as.Date(rownames(FROM_df))
+  
+  # Extract and process the NET series for the current specification
+  NET_df <- as.data.frame(DCA_return[[i]]$NET)
+  colnames(NET_df) <- colnames(DCA_return[[i]]$NET)
+  NET_df$Date <- as.Date(rownames(NET_df))
+  
+  # Extract and process the NPT series for the current specification
+  NPT_df <- as.data.frame(DCA_return[[i]]$NPT)
+  colnames(NPT_df) <- colnames(DCA_return[[i]]$NPT)
+  NPT_df$Date <- as.Date(rownames(NPT_df))
+  
+  # Move Date to the front of each dataframe
+  TCI_df <- TCI_df[, c("Date", spec[i])]
+  TO_df <- TO_df[, c("Date", colnames(DCA_return[[i]]$TO))]
+  FROM_df <- FROM_df[, c("Date", colnames(DCA_return[[i]]$FROM))]
+  NET_df <- NET_df[, c("Date", colnames(DCA_return[[i]]$NET))]
+  NPT_df <- NPT_df[, c("Date", colnames(DCA_return[[i]]$NPT))]
+  
+  # Save the dataframes in the corresponding lists
+  TCI_dfs[[spec[i]]] <- TCI_df
+  TO_dfs[[spec[i]]] <- TO_df
+  FROM_dfs[[spec[i]]] <- FROM_df
+  NET_dfs[[spec[i]]] <- NET_df
+  NPT_dfs[[spec[i]]] <- NPT_df
+}
+
+# Display the head of each dataframe for verification (Optional)
+print(head(TCI_dfs$All))
+print(head(TO_dfs$All))
+print(head(FROM_dfs$All))
+print(head(NET_dfs$All))
+print(head(NPT_dfs$All))
+
+print(head(TCI_dfs$Positive))
+print(head(TO_dfs$Positive))
+print(head(FROM_dfs$Positive))
+print(head(NET_dfs$Positive))
+print(head(NPT_dfs$Positive))
+
+print(head(TCI_dfs$Negative))
+print(head(TO_dfs$Negative))
+print(head(FROM_dfs$Negative))
+print(head(NET_dfs$Negative))
+print(head(NPT_dfs$Negative))
+
+# Optionally save the dataframes to CSV files if needed
+for (i in spec) {
+  write.csv(TCI_dfs[[i]], paste0("TCI_", i, "_asym_return.csv"), row.names = FALSE)
+  write.csv(TO_dfs[[i]], paste0("TO_", i, "_asym_return.csv"), row.names = FALSE)
+  write.csv(FROM_dfs[[i]], paste0("FROM_", i, "_asym_return.csv"), row.names = FALSE)
+  write.csv(NET_dfs[[i]], paste0("NET_", i, "_asym_return.csv"), row.names = FALSE)
+  write.csv(NPT_dfs[[i]], paste0("NPT_", i, "_asym_return.csv"), row.names = FALSE)
+}
+
+# Function to calculate averages for TCI, TO, FROM, NET, NPT and CT over a specified date range
+
+# Example usage
+start_date <- "2019-06-30"
+end_date <- "2024-08-23"
+
+calculate_average_connectedness <- function(DCA_return, start_date, end_date) {
+  
+  # Extract dates from the DCA_return object
+  dates <- as.Date(dimnames(DCA_return$CT)[[3]])
+  
+  # Ensure that the provided start and end dates are valid
+  if (as.Date(start_date) > max(dates) || as.Date(end_date) < min(dates)) {
+    stop("The provided start and end dates are outside the data range.")
+  }
+  
+  # Subset the dates based on the specified range
+  date_mask <- (dates >= as.Date(start_date)) & (dates <= as.Date(end_date))
+  
+  ### Table 1: Averages for TCI, TO, FROM, NET, NPT ###
+  ## TCI
+  TCI_subset <- DCA_return$TCI[date_mask, , drop = FALSE]
+  TCI_avg <- colMeans(TCI_subset)
+  
+  ## TO
+  TO_subset <- DCA_return$TO[date_mask, , drop = FALSE]
+  TO_avg <- colMeans(TO_subset)
+  
+  ## FROM
+  FROM_subset <- DCA_return$FROM[date_mask, , drop = FALSE]
+  FROM_avg <- colMeans(FROM_subset)
+  
+  ## NET
+  NET_subset <- DCA_return$NET[date_mask, , drop = FALSE]
+  NET_avg <- colMeans(NET_subset)
+  
+  ## NPT
+  NPT_subset <- DCA_return$NPT[date_mask, , drop = FALSE]
+  NPT_avg <- colMeans(NPT_subset)
+  
+  # Create the first table with averages for TCI, TO, FROM, NET, NPT
+  average_table <- data.frame(
+    Market = dimnames(DCA_return$CT)[[1]],  # Market names from CT
+    TCI = round(TCI_avg, 3),
+    TO = round(TO_avg, 3),
+    FROM = round(FROM_avg, 3),
+    NET = round(NET_avg, 3),
+    NPT = round(NPT_avg, 3)
+  )
+  
+  ### Table 2: Averages for CT (Pairwise Connectedness) ###
+  ## CT
+  CT_subset <- DCA_return$CT[,,date_mask]*100
+  CT_avg <- apply(CT_subset, c(1, 2), mean)
+  
+  # Convert the CT_avg matrix into a data frame for better presentation
+  CT_table <- as.data.frame(CT_avg)
+  rownames(CT_table) <- dimnames(DCA_return$CT)[[1]]  # Market names as row names
+  colnames(CT_table) <- dimnames(DCA_return$CT)[[2]]  # Market names as column names
+  
+  # Return both tables as a list
+  return(list(average_table = average_table, CT_table = CT_table, start_date = start_date, end_date = end_date))
+}
+
+# Function to loop over all connectedness types (All, Positive, Negative)
+loop_connectedness_types <- function(DCA_return_list, start_date, end_date) {
+  connectedness_types <- c("All", "Positive", "Negative")
+  panel_titles <- c("Panel A: All connectedness (%)", 
+                    "Panel B: Positive connectedness (%)", 
+                    "Panel C: Negative connectedness (%)")
+  
+  # Loop through each connectedness type
+  for (i in 1:3) {
+    # Calculate the averages for the current connectedness type
+    average_result <- calculate_average_connectedness(DCA_return_list[[i]], start_date, end_date)
+    
+    # Extract the two tables
+    average_table <- average_result$average_table
+    CT_table <- average_result$CT_table
+    start_date <- average_result$start_date
+    end_date <- average_result$end_date
+    
+    # Print the results (optional)
+    print(paste("Average Connectedness Table for", connectedness_types[i], ":"))
+    print(average_table)
+    
+    print(paste("Average Connectedness (CT) for", connectedness_types[i], ":"))
+    print(CT_table)
+    
+    # Export the tables to HTML using stargazer with dynamic titles
+    stargazer(average_table, 
+              type = "html", 
+              summary = FALSE,
+              digits = 3,
+              title = panel_titles[i],
+              out = paste0("Connectedness_Averages_", connectedness_types[i], "_over_date_range.html"),
+              notes = paste("Date Range: ", start_date, " to ", end_date))
+    
+    stargazer(CT_table, 
+              type = "html", 
+              summary = FALSE,
+              digits = 3,
+              title = panel_titles[i],
+              out = paste0("CT_Averages_", connectedness_types[i], "_over_date_range.html"),
+              notes = paste("Date Range: ", start_date, " to ", end_date))
+    
+    # Optionally, export the tables to CSV files
+    write.csv(average_table, paste0("Connectedness_Averages_", connectedness_types[i], "_over_date_range.csv"), row.names = FALSE)
+    write.csv(CT_table, paste0("CT_Averages_", connectedness_types[i], "_over_date_range.csv"), row.names = TRUE)
+  }
+}
+
+# Assuming DCA_return_list contains DCA_return[[1]] for All, DCA_return[[2]] for Positive, DCA_return[[3]] for Negative
+loop_connectedness_types(DCA_return, start_date, end_date)
+
 # Save the TCI series from DCA_return for use in chart below, create a dataframe for the event study
 TCI_asym_return <- as.data.frame(DCA_return[[1]]$TCI)
 
 # Name the column "all"
-colnames(TCI_asym_return) <- "all"
+colnames(TCI_asym_return) <- "All"
 
 # Add DCA_return[[2]]$TCI as Positive and DCA_return[[3]]$TCI as Negative
 TCI_asym_return$Positive <- DCA_return[[2]]$TCI
@@ -318,17 +514,28 @@ TCI_asym_return$Net <- TCI_asym_return$Negative - TCI_asym_return$Positive
 # Move the Date column to the front
 TCI_asym_return <- TCI_asym_return[, c("Date", "all", "Positive", "Negative", "Net")]
 
-# Save the TCI_asym_return dataframe to a CSV file
-write.csv(TCI_asym_return, file.path(Asym, "TCI_asym_return.csv"), row.names = FALSE)
+# Subset TCI_asym_return by Start and End Date
+TCI_asym_return <- TCI_asym_return[TCI_asym_return$Date >= as.Date(start_date) & TCI_asym_return$Date <= as.Date(end_date), ]
 
-# Plot net, positive and negative connectedness series
+# Plot net, positive, negative connectedness series with y-axis scaled between 0 and 100
 ggplot(TCI_asym_return, aes(x = Date)) +
+  # Shaded area beneath the All series
+  geom_ribbon(aes(ymin = 0, ymax = All), fill = "black", alpha = 0.5) +
+  
+  # Lines for each connectedness series
   geom_line(aes(y = Net, color = "Net"), size = 1) +
+  geom_line(aes(y = All, color = "All"), size = 1) +
   geom_line(aes(y = Positive, color = "Positive"), size = 1) +
   geom_line(aes(y = Negative, color = "Negative"), size = 1) +
+  
+  # Labeling and styling
   labs(x = "Year", y = "Total Connectedness Index (TCI)", title = "Total Asymmetric Connectedness Series") +
   theme_minimal() +
-  scale_color_manual(values = c("Net" = "black", "Positive" = "blue", "Negative" = "dark red")) +
+  
+  # Custom colors for the series
+  scale_color_manual(values = c("Net" = "grey", "Positive" = "red", "Negative" = "green", "All" = "black")) +
+  
+  # Styling for text and gridlines
   theme(
     axis.title.x = element_text(size = 12),
     axis.title.y = element_text(size = 12),
@@ -340,7 +547,86 @@ ggplot(TCI_asym_return, aes(x = Date)) +
     axis.line.x.bottom = element_line(color = "black", size = 1),
     axis.line.y.left = element_line(color = "black", size = 1)
   ) +
+  
+  # Limit y-axis between 0 and 100
+  ylim(0, 100) +
+  
+  # Date formatting for x-axis
   scale_x_date(date_breaks = "1 year", date_labels = "%Y")
+
+# Save the plot as a PNG
+ggsave(file.path(Asym, paste0("TCI_Asymmetric_subsetted", ".png")), width = 8, height = 6, dpi = 300, bg = "white")
+
+
+# Create data frames for NET from each DCA_return object
+markets <- colnames(DCA_return[[1]]$NET)
+dates <- as.Date(dimnames(DCA_return[[1]]$NET)[[1]])
+
+# Convert NET series for each DCA_return object to data frames
+NET_all <- as.data.frame(DCA_return[[1]]$NET)
+NET_pos <- as.data.frame(DCA_return[[2]]$NET)
+NET_neg <- as.data.frame(DCA_return[[3]]$NET)
+
+# Add Date column to each
+NET_all$Date <- dates
+NET_pos$Date <- dates
+NET_neg$Date <- dates
+
+# Reshape the data to long format for each specification
+NET_all_long <- melt(NET_all, id.vars = "Date", variable.name = "Market", value.name = "NET_all")
+NET_pos_long <- melt(NET_pos, id.vars = "Date", variable.name = "Market", value.name = "NET_pos")
+NET_neg_long <- melt(NET_neg, id.vars = "Date", variable.name = "Market", value.name = "NET_neg")
+
+# Merge the three long data frames by Date and Market
+NET_merged <- merge(NET_all_long, NET_pos_long, by = c("Date", "Market"))
+NET_merged <- merge(NET_merged, NET_neg_long, by = c("Date", "Market"))
+
+# Reshape to long format for plotting
+NET_final <- melt(NET_merged, id.vars = c("Date", "Market"), variable.name = "Specification", value.name = "NET_value")
+
+# Subset the NET_final data frame by the specified date range
+NET_final <- NET_final[NET_final$Date >= as.Date(start_date) & NET_final$Date <= as.Date(end_date), ]
+
+# Plot NET series for each market with All, Positive, and Negative on the same graph
+ggplot(NET_final, aes(x = Date, y = NET_value, color = Specification)) +
+  # Add shaded area beneath the "All" series
+  geom_ribbon(data = subset(NET_final, Specification == "NET_all"),
+              aes(ymin = 0, ymax = NET_value),
+              fill = "black", alpha = 0.3) +  # Shaded black area beneath "All"
+
+  # Line plot for each specification
+  geom_line(size = 1) +
+  
+  # Labeling and styling
+  labs(x = "Year", y = "NET Connectedness", title = "Dynamic net return connectedness by market") +
+  theme_minimal() +
+  
+  # Custom colors for the series
+  scale_color_manual(values = c("NET_all" = "black", "NET_pos" = "red", "NET_neg" = "green"),
+                     labels = c("NET_all" = "All", "NET_pos" = "Positive", "NET_neg" = "Negative")) +
+  
+  # Styling for text and gridlines
+  theme(
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    plot.title = element_text(size = 14, face = "bold"),
+    legend.position = "bottom",
+    panel.grid.major = element_line(color = "grey80", size = 0.5),
+    panel.grid.minor = element_line(color = "grey90", size = 0.25)
+  ) +
+  
+  # Set y-axis limits between -100 and 100
+  ylim(-50, 60) +
+  
+  # Date formatting for x-axis
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") +
+  
+  # Facet the plot by market, arranging in a 3x3 grid
+  facet_wrap(~Market, ncol = 3)
+
+# Save the plot as a PNG file
+ggsave(file.path(Asym, paste0("Net_Connectedness_All_Pos_Neg_3x3_Shaded_All.png")), width = 15, height = 10, dpi = 300)
 
 #----------------------------------
 
@@ -349,84 +635,87 @@ ggplot(TCI_asym_return, aes(x = Date)) +
 #----------------------------------
 
 # Define custom colors for each category (adjust these to match the chart)
-# This creates a color scheme for the different event categories in the event study.
 category_colors <- c(
-        "global politics" = "orange", 
-        "carbon market" = "red", 
-        "weather" = "gold",
-        "energy" = "green",
-        "finance" = "blue",
-        "covid-19" = "purple"
+  "global politics" = "orange", 
+  "carbon market" = "red", 
+  "weather" = "gold",
+  "energy" = "green",
+  "finance" = "blue",
+  "covid-19" = "purple"
 )
 
-max.index <- 100
+max.index <- 50  # Maximum y-axis value for Net connectedness
 
-# Add an EventNumber column to the TCI dataframe mapping the event number to repeat between the StartDate and EndDate
-# Here, we are adjusting the event study dates to ensure they fall within the TCI data's date range.
+# Convert relevant columns to Date format
+TCI_asym_return$Date <- as.Date(TCI_asym_return$Date)  # Ensure Date column is in Date format
+events_study_df$StartDate <- as.Date(events_study_df$StartDate)  # Ensure StartDate is Date format
+events_study_df$EndDate <- as.Date(events_study_df$EndDate)  # Ensure EndDate is Date format
+
+# Adjust event study dates to ensure they fall within the TCI data's date range
 events_study_df$EndDate <- pmin(events_study_df$EndDate, max(TCI_asym_return$Date))
 events_study_df$StartDate <- pmax(events_study_df$StartDate, min(TCI_asym_return$Date))
 
-# Calculating the midpoint of the event window for labeling and alternating label positions.
-events_study_df <- events_study_df %>%
+# Filter events within the specified date range
+events_study_df_filtered <- events_study_df %>% 
+  filter(EndDate >= as.Date(start_date) & StartDate <= as.Date(end_date))
+
+# Calculate the midpoint of the event window for labeling
+events_study_df_filtered <- events_study_df_filtered %>%
   mutate(
-    Midpoint = as.Date(Midpoint , origin = "1970-01-01"),  # Midpoint for event label positioning
-    LabelY = c(seq(max.index, 20, length.out = ceiling(n() / 2)), seq(20, max.index, length.out = floor(n() / 2)))  # First half seq(50, 25), second half seq(25, 50)
+    Midpoint = as.Date((as.numeric(StartDate) + as.numeric(EndDate)) / 2, origin = "1970-01-01"),  # Midpoint for event label positioning
+    LabelY = c(seq(max.index, 20, length.out = ceiling(n() / 2)), seq(20, max.index, length.out = floor(n() / 2)))  # Alternating label positions
   )
 
-# Create the plot
-ggplot() + 
-  # This adds shaded areas (rectangles) representing the time periods of different events in the event study.
-  geom_rect(data = events_study_df, aes(xmin = pmax(StartDate, min(TCI_asym_return$Date)), xmax = pmin(EndDate, max(TCI_asym_return$Date)), ymin = 0, ymax = max.index, fill = Category), alpha = 0.2) +  
-  
-  # Adding vertical lines at the StartDate and EndDate of each event.
-  geom_segment(data = events_study_df, aes(x = StartDate, xend = StartDate, y = 0, yend = max.index), linetype = "solid", color = "grey", size = 0.25, alpha = 0.25) +  
-  geom_segment(data = events_study_df, aes(x = EndDate, xend = EndDate, y = 0, yend = max.index), linetype = "solid", color = "grey", size = 0.25, alpha = 0.25) +  
-  
-  # Drawing a shaded area under the 'All' line representing the total connectedness index for all events.
-  geom_ribbon(data = TCI_asym_return, aes(x = Date, ymin = 0, ymax = all), fill = "lightgrey", alpha = 1) +  
-  
-  # Plotting the line for the 'All' series from the TCI asymmetric return data.
-  geom_line(data = TCI_asym_return, aes(x = Date, y = all, color = "All"), size = 0.8) +
-  
-  # Plotting the line for the 'Positive' series with a dashed line.
-  geom_line(data = TCI_asym_return, aes(x = Date, y = Positive, color = "Positive"), linetype = "dashed", size = 0.8) +
-  
-  # Plotting the line for the 'Negative' series with a dashed line.
-  geom_line(data = TCI_asym_return, aes(x = Date, y = Negative, color = "Negative"), linetype = "dashed", size = 0.8) +
+# Filter the TCI data based on the start and end date
+TCI_asym_return_filtered <- TCI_asym_return %>% 
+  filter(Date >= as.Date(start_date) & Date <= as.Date(end_date))
 
-  # Placing event numbers at the midpoint of the event window for easier identification.
-  geom_text(data = events_study_df, aes(x = Midpoint, y = LabelY, label = EventNumber), angle = 90, vjust = 0.5, hjust = 0) +  
+# Correct column reference: replace 'Net' with the actual column name if necessary
+# Create the plot for the "Net" series with filtered data
+ggplot() +
+  # Shaded areas representing the time periods of different events
+  geom_rect(data = events_study_df_filtered, aes(xmin = pmax(StartDate, as.Date(start_date)), xmax = pmin(EndDate, as.Date(end_date)), ymin = 0, ymax = max.index, fill = Category), alpha = 0.2) +
   
-  # Adding labels and title to the plot.
-  labs(x = "Year", y = "Total Connectedness Index (TCI)", title = "Total Asymmetric Connectedness Event Study" )  +
+  # Vertical lines at the StartDate and EndDate of each event
+  geom_segment(data = events_study_df_filtered, aes(x = StartDate, xend = StartDate, y = 0, yend = max.index), linetype = "solid", color = "grey", size = 0.25, alpha = 0.25) +  
+  geom_segment(data = events_study_df_filtered, aes(x = EndDate, xend = EndDate, y = 0, yend = max.index), linetype = "solid", color = "grey", size = 0.25, alpha = 0.25) +  
+
+  # Shaded area under the 'Net' line representing total connectedness
+  geom_ribbon(data = TCI_asym_return_filtered, aes(x = Date, ymin = 0, ymax = Net), fill = "lightgrey", alpha = 1) +
+
+  # Lines for 'Net' and 'All' series
+  geom_line(data = TCI_asym_return_filtered, aes(x = Date, y = Net, color = "Net"), size = 0.8) +
+  geom_line(data = TCI_asym_return_filtered, aes(x = Date, y = All, color = "All"), size = 0.8) +
+
+  # Add event numbers at the midpoint of the event window
+  geom_text(data = events_study_df_filtered, aes(x = Midpoint, y = LabelY, label = EventNumber), angle = 90, vjust = 0.5, hjust = 0) +
+
+  # Add labels and title
+  labs(x = "Year", y = "Net Connectedness Index (Negative TCI - Positive TCI)", title = "Net Asymmetric Connectedness Event Study") +
   
-  # Applying a minimal theme to the plot for a cleaner look.
-  theme_minimal() +  
-  
-  # Assigning custom fill colors to the event categories.
-  scale_fill_manual(values = category_colors, name = "Category") +  
-  
-  # Assigning custom colors to the 'All', 'Positive', and 'Negative' lines.
-  scale_color_manual(values = c("All" = "black", "Positive" = "blue", "Negative" = "dark red")) +
-  
-  # Customizing the theme for the plot.
+  # Minimal theme and custom colors
+  theme_minimal() +
+  scale_fill_manual(values = category_colors, name = "Category") +
+  scale_color_manual(values = c("Net" = "brown", "All" = "black")) +
+
+  # Custom theme settings
   theme(
-    axis.title.x = element_text(size = 12),  # X-axis title size
-    axis.title.y = element_text(size = 12),  # Y-axis title size
-    axis.text = element_text(size = 10),  # Axis text size
-    plot.title = element_text(size = 14, face = "bold"),  # Title size and bold
-    legend.position = "bottom",  # Legend position
-    panel.grid = element_blank(),  # Removing all gridlines
-    axis.line.x.bottom = element_line(color = "black", size = 1),  # Adding a line to the bottom of the x-axis
-    axis.line.y.left = element_line(color = "black", size = 1)  # Adding a line to the left of the y-axis
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    plot.title = element_text(size = 14, face = "bold"),
+    legend.position = "bottom",
+    panel.grid = element_blank(),
+    axis.line.x.bottom = element_line(color = "black", size = 1),
+    axis.line.y.left = element_line(color = "black", size = 1)
   ) +
-  
-  # Setting the x-axis and y-axis limits and formats.
-  scale_x_date(limits = c(min(TCI_asym_return$Date), max(TCI_asym_return$Date)), date_breaks = "1 year", date_labels = "%Y") +
+
+  # Setting the x-axis and y-axis limits
+  scale_x_date(limits = c(as.Date(start_date), as.Date(end_date)), date_breaks = "1 year", date_labels = "%Y") +
   scale_y_continuous(limits = c(0, max.index))
 
-# Save the plot as a PNG
-ggsave(file.path(Asym, paste0("TCI_Asymmetric_with_events_all_r", ".png")), width = 8, height = 6, dpi = 300, bg = "white")
+# Save the plot
+ggsave(file.path(Asym, paste0("Net_Asymmetric_with_events_subsetted", ".png")), width = 10, height = 6, dpi = 300, bg = "white")
 
 #------------------------------------------------------------------------
 
@@ -1117,111 +1406,3 @@ ggplot(TCI_Net_gamma_long, aes(x = Date, y = TCI, color = Gamma)) +
 
 # Save the plot
 ggsave(file.path(AsymGammaTesting, "TCI_Net_Gamma_Values.png"), width = 8, height = 6, dpi = 300, bg = "white")
-
-
-
-
-# Recreate TVP-VAR model with estimation results to prepare for confidence interval analysis
-
-  # Save the prior 
-prior <- MinnesotaPrior(gamma = gamma.setting, k = ncol(return_zoo), nlag = lag_order)
-prior.bayes <- BayesPrior(return_zoo, size = window_size, nlag = lag_order)
-prior.bayes.unrestricted <- BayesPrior(return_zoo, nlag = lag_order)
-
-
-# Function to run TVP-VAR, save FEVD, calculate SE and CI, and generate FEVD plots with confidence intervals
-run_and_save_tvp_var <- function(return_zoo, suffix) {
-  
-  # Initialize lists to store outputs
-  fit_list <- list()   # Store the TVPVAR model fit objects
-  se_list <- list()    # Store the standard errors of the coefficients
-  ci_list <- list()    # Store the confidence intervals for the FEVD
-  
-  cat("Running TVP-VAR for return series\n")
-  
-  # Fit TVP-VAR model for the return series
-  fit <- TVPVAR(return_zoo, configuration = list(nlag = lag_order, prior = prior, l = c(forgetting_factor, decay_factor)))
-  fit_list[['return_series']] <- fit  # Store the fit object
-  
-  # Extract time-specific dimensions
-  num_time_points <- dim(fit$B_t)[3]  # Number of time points
-  num_vars <- dim(fit$B_t)[1]  # Number of variables in the VAR
-  
-  # Initialize matrices to store FEVD, standard errors, and confidence intervals
-  fevd_matrix <- array(NA, dim = c(num_vars, num_vars, num_time_points))  # FEVD matrix
-  ci_upper_matrix <- array(NA, dim = c(num_vars, num_vars, num_time_points))  # Upper confidence intervals
-  ci_lower_matrix <- array(NA, dim = c(num_vars, num_vars, num_time_points))  # Lower confidence intervals
-  
-  # Loop over each time point to calculate FEVD, standard errors, and CIs
-  for (t in 1:num_time_points) {
-    cat("Calculating FEVD for time step:", t, "\n")
-    
-    # Extract time-specific VAR coefficients (B_t) and covariances (Q_t)
-    Phi_t <- fit$B_t[, , t]
-    Sigma_t <- fit$Q_t[, , t]
-    
-    # Compute FEVD for this time step
-    fevd_t <- FEVD(Phi = Phi_t, Sigma = Sigma_t, nfore = 10, type = "time", generalized = TRUE)$FEVD
-  
-    # Compute the TCI for this time step
-    dca = ConnectednessTable(fevd_t)
-
-    # Save the TCI for this time step
-    TCI_t <- dca$TCI
-
-    # Store FEVD results
-    fevd_matrix[, , t] <- fevd_t
-    
-    # Extract standard errors (posterior variances) for coefficients (B) and covariances (Q)
-    se_B <- sqrt(fit$B_t[, , t])
-    se_Q <- sqrt(fit$Q_t[, , t])
-
-    # Calculate confidence intervals
-    ci_upper_matrix[, , t] <- fevd_t + 1.96 * se_B  # Upper bound of CI (mean + 1.96 * SE)
-    ci_lower_matrix[, , t] <- fevd_t - 1.96 * se_B  # Lower bound of CI (mean - 1.96 * SE)
-  }
-  
-  # Store the results in lists
-  se_list[['return_series']] <- se_B
-  ci_list[['return_series']] <- list(lower = ci_lower_matrix, upper = ci_upper_matrix)
-  
-  ## FEVD Plotting with Confidence Intervals ##
-  
-  # Average FEVD across variables for plotting
-  fevd_df <- data.frame(Date = 1:num_time_points, FEVD = apply(fevd_matrix, 3, mean))  # Take mean FEVD for each time point
-  
-  # Convert confidence intervals to data frames for plotting
-  ci_upper_df <- data.frame(Date = 1:num_time_points, Upper_CI = apply(ci_upper_matrix, 3, mean))
-  ci_lower_df <- data.frame(Date = 1:num_time_points, Lower_CI = apply(ci_lower_matrix, 3, mean))
-  
-  # Merge data for plotting
-  plot_data <- merge(fevd_df, ci_lower_df, by = "Date")
-  plot_data <- merge(plot_data, ci_upper_df, by = "Date")
-  
-  # Create the FEVD plot with confidence intervals using ggplot2
-  p <- ggplot(plot_data, aes(x = Date, y = FEVD)) +
-    geom_line(size = 1) +  # FEVD line
-    geom_ribbon(aes(ymin = Lower_CI, ymax = Upper_CI), alpha = 0.2) +  # Confidence interval ribbon
-    labs(title = paste("FEVD with Confidence Intervals - return_series"),
-         x = "Time", y = "Forecast Error Variance Decomposition (FEVD)") +
-    theme_minimal() +
-    theme(
-      plot.title = element_text(size = 20, face = "bold", hjust = 0.5),
-      axis.title = element_text(size = 16),
-      axis.text = element_text(size = 14),
-      legend.title = element_text(size = 16),
-      legend.text = element_text(size = 14),
-      legend.position = "bottom",
-      panel.grid.major = element_line(color = "grey80", size = 0.5),
-      panel.grid.minor = element_line(color = "grey90", size = 0.25)
-    )
-  
-  # Save the FEVD plot as PNG
-  ggsave(file.path(Asym, paste0("FEVD_with_CI_return_series_", suffix, ".png")), p, width = 10, height = 6, dpi = 300, bg = "white")
-  
-  return(list(fit_list = fit_list, FEVD_matrix = fevd_matrix, se_list = se_list, ci_list = ci_list))
-}
-
-# Running TVP-VAR and generating FEVD plots with confidence intervals for returns
-DCA_return_fit <- run_and_save_tvp_var(return_zoo, "r")
-
