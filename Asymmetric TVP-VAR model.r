@@ -21,8 +21,9 @@ setwd(Git)
 source("Packages.R")
 
 # Replication paper directory
-# Asym <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness Bayes"
-Asym <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness Minnesota"
+Asym <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness Bayes"
+# Asym <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness Minnesota Adekoya"
+# Asym <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness Minnesota"
 AsymHTesting <- paste0(Asym, "/Horizon Test")
 AsymWTesting <- paste0(Asym, "/Window Test")
 AsymLagTesting <- paste0(Asym, "/Lag Test")
@@ -159,6 +160,7 @@ asym_vol <- prepare_asym_series(vol_zoo)
 
 # Diagonal value of variance-covariance matrix
 gamma.setting <- 5
+# gamma.setting <- 0.1 # Adekoya et al. (2021) suggest a value of 0.1
 
 # BayesPrior
 # more appropriate for capturing large swings in connectedness, particularly around extreme events
@@ -275,7 +277,7 @@ run_and_save_tvp_var <- function(asym_series, suffix) {
 
     # Dynamic pairwise connectedness plot
   png(file.path(Asym, paste0("PCI_Asymmetric_", suffix, ".png")), width = 800, height = 600)
-  PlotPCI(DCA[[1]], ca = list(DCA[[2]], DCA[[3]]), ylim = c(-100, 100))
+  PlotPCI(DCA[[1]], ca = list(DCA[[2]], DCA[[3]]), ylim = c(0, 100))
   dev.off()  
 
   # Save the prior 
@@ -517,6 +519,9 @@ TCI_asym_return <- TCI_asym_return[, c("Date", "all", "Positive", "Negative", "N
 # Subset TCI_asym_return by Start and End Date
 TCI_asym_return <- TCI_asym_return[TCI_asym_return$Date >= as.Date(start_date) & TCI_asym_return$Date <= as.Date(end_date), ]
 
+# Export the TCI_asym_return data frame to a CSV file
+write.csv(TCI_asym_return, file.path(Asym, "TCI_Asymmetric_subsetted.csv"), row.names = FALSE)
+
 # Plot net, positive, negative connectedness series with y-axis scaled between 0 and 100
 ggplot(TCI_asym_return, aes(x = Date)) +
   # Shaded area beneath the All series
@@ -567,12 +572,17 @@ NET_all <- as.data.frame(DCA_return[[1]]$NET)
 NET_pos <- as.data.frame(DCA_return[[2]]$NET)
 NET_neg <- as.data.frame(DCA_return[[3]]$NET)
 
-# Add Date column to each
+# Add Date column to each NET data frame
 NET_all$Date <- dates
 NET_pos$Date <- dates
 NET_neg$Date <- dates
 
-# Reshape the data to long format for each specification
+# Extract All TCI and add Date column
+All_TCI <- as.data.frame(DCA_return[[1]]$TCI)
+All_TCI$Date <- dates
+colnames(All_TCI) <- c("All_TCI", "Date")
+
+# Reshape NET series to long format for each specification
 NET_all_long <- melt(NET_all, id.vars = "Date", variable.name = "Market", value.name = "NET_all")
 NET_pos_long <- melt(NET_pos, id.vars = "Date", variable.name = "Market", value.name = "NET_pos")
 NET_neg_long <- melt(NET_neg, id.vars = "Date", variable.name = "Market", value.name = "NET_neg")
@@ -581,29 +591,42 @@ NET_neg_long <- melt(NET_neg, id.vars = "Date", variable.name = "Market", value.
 NET_merged <- merge(NET_all_long, NET_pos_long, by = c("Date", "Market"))
 NET_merged <- merge(NET_merged, NET_neg_long, by = c("Date", "Market"))
 
+# Merge with All TCI data
+NET_merged <- merge(NET_merged, All_TCI, by = "Date")
+
 # Reshape to long format for plotting
-NET_final <- melt(NET_merged, id.vars = c("Date", "Market"), variable.name = "Specification", value.name = "NET_value")
+NET_final <- melt(NET_merged, id.vars = c("Date", "Market", "All_TCI"), variable.name = "Specification", value.name = "NET_value")
 
 # Subset the NET_final data frame by the specified date range
 NET_final <- NET_final[NET_final$Date >= as.Date(start_date) & NET_final$Date <= as.Date(end_date), ]
 
-# Plot NET series for each market with All, Positive, and Negative on the same graph
-ggplot(NET_final, aes(x = Date, y = NET_value, color = Specification)) +
+# Export the NET_final data frame to a CSV file
+write.csv(NET_final, file.path(Asym, "NET_Connectedness_All_Pos_Neg_subsetted.csv"), row.names = FALSE)
+
+# Create the ggplot chart for NET series, including All TCI as a dotted line
+p <- ggplot(NET_final, aes(x = Date, y = NET_value)) +
   # Add shaded area beneath the "All" series
   geom_ribbon(data = subset(NET_final, Specification == "NET_all"),
               aes(ymin = 0, ymax = NET_value),
               fill = "black", alpha = 0.3) +  # Shaded black area beneath "All"
-
+  
   # Line plot for each specification
-  geom_line(size = 1) +
+  geom_line(aes(color = Specification), size = 1) +
+  
+  # Add dotted black line for All TCI, and ensure it is included in the legend
+  geom_line(data = NET_final, aes(x = Date, y = All_TCI, linetype = "All_TCI"),
+            color = "black", size = 1) +
   
   # Labeling and styling
-  labs(x = "Year", y = "NET Connectedness", title = "Dynamic net return connectedness by market") +
+  labs(x = "Year", y = "NET Connectedness", title = "Dynamic Net Return Connectedness by Market with All TCI") +
   theme_minimal() +
   
   # Custom colors for the series
   scale_color_manual(values = c("NET_all" = "black", "NET_pos" = "red", "NET_neg" = "green"),
                      labels = c("NET_all" = "All", "NET_pos" = "Positive", "NET_neg" = "Negative")) +
+  
+  # Custom linetypes for TCI to ensure it appears in the legend as a dotted line
+  scale_linetype_manual(values = c("All_TCI" = "dotted"), labels = c("All_TCI" = "All TCI")) +
   
   # Styling for text and gridlines
   theme(
@@ -616,7 +639,7 @@ ggplot(NET_final, aes(x = Date, y = NET_value, color = Specification)) +
     panel.grid.minor = element_line(color = "grey90", size = 0.25)
   ) +
   
-  # Set y-axis limits between -100 and 100
+  # Set y-axis limits between -50 and 60
   ylim(-50, 60) +
   
   # Date formatting for x-axis
@@ -625,8 +648,15 @@ ggplot(NET_final, aes(x = Date, y = NET_value, color = Specification)) +
   # Facet the plot by market, arranging in a 3x3 grid
   facet_wrap(~Market, ncol = 3)
 
-# Save the plot as a PNG file
-ggsave(file.path(Asym, paste0("Net_Connectedness_All_Pos_Neg_3x3_Shaded_All.png")), width = 15, height = 10, dpi = 300)
+# Convert ggplot to plotly
+p_plotly <- ggplotly(p)
+
+# Export the interactive plot as an HTML file
+saveWidget(as_widget(p_plotly), file = file.path(Asym, "Net_Connectedness_All_Pos_Neg_3x3_Shaded_All_with_TCI.html"))
+
+# Save the ggplot2 chart as a PNG file
+ggsave(file.path(Asym, "Net_Connectedness_All_Pos_Neg_3x3_Shaded_All_with_TCI_ggplot.png"), 
+       plot = p, width = 15, height = 10, dpi = 300)
 
 #----------------------------------
 
@@ -795,6 +825,98 @@ ggplot() +
 ggsave(file.path(Asym, paste0("TCI_Asymmetric_with_events_net_r", ".png")), width = 8, height = 6, dpi = 300, bg = "white")
 
 #------------------------------------------------------------------------
+
+#----------------------------------
+
+## Event Study Window Plots - NET markets vs all TCI ##
+
+#----------------------------------
+
+# Set the index range for y-axis
+min.index <- -50
+max.index <- 100
+
+# Ensure the dates in the event study data are valid
+events_study_df$EndDate <- pmin(events_study_df$EndDate, max(NET_final$Date))
+events_study_df$StartDate <- pmax(events_study_df$StartDate, min(NET_final$Date))
+
+# Calculate the midpoint of each event window for label positioning
+events_study_df <- events_study_df %>%
+  mutate(
+    Midpoint = as.Date((as.numeric(StartDate) + as.numeric(EndDate)) / 2, origin = "1970-01-01"),  # Midpoint for event label positioning
+    LabelY = c(seq(max.index, 20, length.out = ceiling(n() / 2)), seq(20, max.index, length.out = floor(n() / 2)))  # Alternating label positions
+  )
+
+# Create the event study plot with NET connectedness series for each market
+event_study_plot <- ggplot(NET_final, aes(x = Date, y = NET_value, color = Specification)) +
+  
+  # Add shaded areas representing the time periods of different events
+  geom_rect(data = events_study_df, aes(xmin = StartDate, xmax = EndDate, ymin = min.index, ymax = max.index, fill = Category), alpha = 0.2) +
+  
+  # Vertical lines for the StartDate and EndDate of each event
+  geom_segment(data = events_study_df, aes(x = StartDate, xend = StartDate, y = min.index, yend = max.index), 
+               linetype = "solid", color = "grey", size = 0.25, alpha = 0.25) +
+  geom_segment(data = events_study_df, aes(x = EndDate, xend = EndDate, y = min.index, yend = max.index), 
+               linetype = "solid", color = "grey", size = 0.25, alpha = 0.25) +
+  
+  # Shaded area beneath the "All" series (NET_all)
+  geom_ribbon(data = subset(NET_final, Specification == "NET_all"), aes(ymin = NET_value, ymax = NET_value), fill = "black", alpha = 0.3) +
+  
+  # Line plot for each specification (Net, Positive, Negative)
+  geom_line(size = 1) +
+  
+  # Add event numbers at the midpoint of the event window
+  geom_text(data = events_study_df, aes(x = Midpoint, y = LabelY, label = EventNumber), 
+            angle = 90, vjust = 0.5, hjust = 0) +
+  
+  # Custom colors for each line series
+  scale_color_manual(values = c("NET_all" = "black", "NET_pos" = "red", "NET_neg" = "green"),
+                     labels = c("NET_all" = "All", "NET_pos" = "Positive", "NET_neg" = "Negative")) +
+  
+  # Assign custom fill colors for events
+  scale_fill_manual(values = c(
+    "global politics" = "orange", 
+    "carbon market" = "red",
+    "weather" = "gold",
+    "energy" = "green",
+    "finance" = "blue",
+    "covid-19" = "purple"
+  ), name = "Category") +
+  
+  # Labels and title
+  labs(x = "Year", y = "NET Connectedness", title = "Dynamic Net Connectedness by Market with Events") +
+  
+  # Apply minimal theme and set plot elements
+  theme_minimal() +
+  theme(
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    plot.title = element_text(size = 14, face = "bold"),
+    legend.position = "bottom",
+    panel.grid.major = element_line(color = "grey80", size = 0.5),
+    panel.grid.minor = element_line(color = "grey90", size = 0.25),
+    panel.grid = element_blank(),
+    axis.line.x.bottom = element_line(color = "black", size = 1),
+    axis.line.y.left = element_line(color = "black", size = 1)
+  ) +
+  
+  # Set y-axis limits and format date x-axis
+  ylim(min.index, max.index) +
+  scale_x_date(limits = c(min(NET_final$Date), max(NET_final$Date)), date_breaks = "1 year", date_labels = "%Y") +
+  
+  # Facet wrap to display each market's NET connectedness in a 3x3 grid
+  facet_wrap(~Market, ncol = 3)
+
+# Save the plot as PNG
+ggsave(file.path(Asym, "Net_Connectedness_with_Events_Overlay_3x3.png"), 
+       plot = event_study_plot, width = 15, height = 10, dpi = 300)
+
+# Optionally, convert to plotly for interactive features and save as HTML
+event_study_plotly <- ggplotly(event_study_plot)
+saveWidget(as_widget(event_study_plotly), file = file.path(Asym, "Net_Connectedness_with_Events_Overlay_3x3.html"))
+#------------------------------------------------------------------------
+
 
 #----------------------------------
 
