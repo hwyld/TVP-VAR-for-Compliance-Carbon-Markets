@@ -23,8 +23,6 @@
 # Only Run those files marked 1) in run list below
 #-------------------------------------
 
-# If running from the single wd, update all 3 working directories in the Packages.r file
-
 # 1)
 # Set the working directory to where your R scripts are located
 

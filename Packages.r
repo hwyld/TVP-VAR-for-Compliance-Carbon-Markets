@@ -61,7 +61,7 @@ load_packages <- function(update = FALSE) {
     moments = "statistical moments in R",
     doParallel = "parallel computing in R",
     orca = "plotly in R",
-    forecast = "forecasting in R",
+    forecast = "forecasting in R"
   )
 
   # Update all packages if specified
