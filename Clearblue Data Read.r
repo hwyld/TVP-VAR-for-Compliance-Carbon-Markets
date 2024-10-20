@@ -4,19 +4,19 @@
 ## Date of creation: 2024-07-19
 
 #-------------------------------------
-# clear memory
-rm(list=ls())    
-#----------------------------------
+# # clear memory
+# rm(list=ls())    
+# #----------------------------------
 
-## Packages ##
-#----------------------------------
-# Source the package setup script
-Git <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets"
-setwd(Git)
-source("Packages.R")
+# ## Packages ##
+# #----------------------------------
+# # Source the package setup script
+# Git <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets"
+# setwd(Git)
+# source("Packages.R")
 
-# Set the working directory
-setwd(Clearblue_Data)
+# # Set the working directory
+# setwd(Clearblue_Data)
 
 ## Read the datasets from CSV files ##
 

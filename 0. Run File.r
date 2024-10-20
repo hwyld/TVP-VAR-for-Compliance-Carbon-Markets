@@ -28,8 +28,16 @@
 # 1)
 # Set the working directory to where your R scripts are located
 
-Git <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets"
+Git <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/Final Estimation for Research Project"
+
+# Ensure the directory exists
+if (!dir.exists(Git)) {
+  dir.create(Git)
+}
+
 setwd(Git)
+
+# This may have to be defined in each run script separatel to ensure the correct working directory is set
 
 # 1)
 # Load the necessary packages
@@ -58,12 +66,12 @@ source("Packages.r")
     setwd(Git)
     source("Create Research Data.r")
 
-# 1)
+# 2)
 # Weekly Returns - Calculates weekly returns from the processed data
 setwd(Git)
 source("Weekly Returns.r")
 
-# 1)
+# 3)
 # TVP-VAR model - Fits a Time-Varying Parameter Vector Autoregression model on the dataset
 setwd(Git)
 source("Asymmetric TVP-VAR model.r")

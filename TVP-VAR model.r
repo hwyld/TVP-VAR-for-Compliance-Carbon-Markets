@@ -8,16 +8,16 @@
 ## https://sites.google.com/site/fk83research/code?authuser=0
 
 #-------------------------------------
-# clear memory
-rm(list=ls())    
-#----------------------------------
+# # clear memory
+# rm(list=ls())    
+# #----------------------------------
 
-## Packages ##
-#----------------------------------
-# Source the package setup script
-Git <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets"
-setwd(Git)
-source("Packages.R")
+# ## Packages ##
+# #----------------------------------
+# # Source the package setup script
+# Git <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets"
+# setwd(Git)
+# source("Packages.R")
 
 # Replication paper directory
 # Rep <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Replication Exercise/Bayes"

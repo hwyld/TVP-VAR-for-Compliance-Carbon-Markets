@@ -8,21 +8,21 @@
 ## https://sites.google.com/site/fk83research/code?authuser=0
 
 #-------------------------------------
-# clear memory
-rm(list=ls())    
-#----------------------------------
+# # clear memory
+# rm(list=ls())    
+# #----------------------------------
 
-## Packages ##
-#----------------------------------
-# Source the package setup script
-Git <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets"
-setwd(Git)
-source("Packages.R")
+# ## Packages ##
+# #----------------------------------
+# # Source the package setup script
+# Git <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets"
+# setwd(Git)
+# source("Packages.R")
 
 # Replication paper directory
-# Asym <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness Bayes"
-# Asym <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness Minnesota Adekoya"
-Asym <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness Minnesota"
+# Asym <- paste0(Asym, "/Asymmetric Connectedness Bayes")
+# Asym <- paste0(Asym, "/Asymmetric Connectedness Minnesota Adekoya")
+Asym <- paste0(Git, "/Asymmetric Connectedness Minnesota")
 AsymHTesting <- paste0(Asym, "/Horizon Test")
 AsymWTesting <- paste0(Asym, "/Window Test")
 AsymLagTesting <- paste0(Asym, "/Lag Test")

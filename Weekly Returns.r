@@ -3,17 +3,17 @@
 ## Author: Henry Wyld
 ## Date of creation: 2024-03-31
 
-#-------------------------------------
-# clear memory
-rm(list=ls())    
-#----------------------------------
+# #-------------------------------------
+# # clear memory
+# rm(list=ls())    
+# #----------------------------------
 
-## Packages ##
-#----------------------------------
-# Source the package setup script
-Git <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets"
-setwd(Git)
-source("Packages.R")
+# ## Packages ##
+# #----------------------------------
+# # Source the package setup script
+# Git <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets"
+# setwd(Git)
+# source("Packages.R")
 
 ####### Import and Format Data #######
 #---------------------------------------
