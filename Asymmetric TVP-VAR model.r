@@ -1,5 +1,4 @@
 ### Econometrics Research Project , Semester 2, 2024
-## The pursuit of a global carbon market; A time varying analysis of international compliance carbon markets
 ## Asymmetric TVP-VAR model estimation procedures in R using the ConnectednessApproach package
 ## Author: Henry Wyld
 ## Date of creation: 2024-09-07
@@ -21,9 +20,9 @@ setwd(Git)
 source("Packages.R")
 
 # Replication paper directory
-Asym <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness Bayes"
+# Asym <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness Bayes"
 # Asym <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness Minnesota Adekoya"
-# Asym <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness Minnesota"
+Asym <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets/Asymmetric Connectedness Minnesota"
 AsymHTesting <- paste0(Asym, "/Horizon Test")
 AsymWTesting <- paste0(Asym, "/Window Test")
 AsymLagTesting <- paste0(Asym, "/Lag Test")
@@ -280,6 +279,11 @@ run_and_save_tvp_var <- function(asym_series, suffix) {
   PlotPCI(DCA[[1]], ca = list(DCA[[2]], DCA[[3]]), ylim = c(0, 100))
   dev.off()  
 
+  # GIRF plot
+  # png(file.path(Asym, paste0("GIRF_Asymmetric_", suffix, ".png")), width = 800, height = 600)
+  # IRF(Phi=DCA[[1]]$fit$B, Sigma=DCA[[1]]$fit$Q, nfore=10, orth=TRUE)
+  # dev.off()
+
   # Save the prior 
   prior <- MinnesotaPrior(gamma = gamma.setting, k = ncol(asym_series[[1]]), nlag = lag_order)
   prior.bayes <- BayesPrior(return_zoo, size = window_size, nlag = lag_order)
@@ -300,6 +304,9 @@ run_and_save_tvp_var <- function(asym_series, suffix) {
 
 # Run TVP-VAR and generate plots for both returns and volatility
 DCA_return <- run_and_save_tvp_var(asym_return, "r")
+
+IRF(Phi=DCA_return[[1]]$B, Sigma=DCA_return[[1]]$Q, nfore=10, orth=TRUE)
+
 #DCA_vol <- run_and_save_tvp_var(asym_vol, "v")
 # Initialize empty lists to store the dataframes for each specification
 TCI_dfs <- list()

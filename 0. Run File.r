@@ -1,22 +1,17 @@
 ## Econometrics Research Project , Semester 2, 2024
-## The pursuit of a global carbon market; A time varying analysis of international compliance carbon markets
-## Run File for Replication of the TVP-VAR Model
+## Run File for Replication of the Asymmetric TVP-VAR Model
 ## Henry Wyld
 
 ###### READ THIS TO RUN ######
 # Run each script individually in the order below
 
-# Warnings may appear after running source("ICAP Data Read.r"), this is expected. 
 # Continue running the scripts in order.
 
 # If want to reproduce from raw data, then:
 #-------------------------------------
 # Need the following source files 
-# ICAP : ("Raw ICAP Data.xlsx") - source from the ICAP_Data wd
-# Clearblue : (eu_ets.xlsx"),(new_zealand_ets.xlsx"),(WCI.xlsx") - source from the Clearblue_Data wd
-# Exchange rate data : ("Refinitiv_Exchange_Rates.csv") - source from Git wd
-# Reuters data for HBEA : ("Refinitiv_HUBEI.csv") - source from Git wd
-# Event Study data: ("events_study_data.csv") - source from Git wd
+# Store the Folder Named 'Data' in your working directory
+# Place EUR Cross Rates 20Y 16082024 into the working folder, not the data folder
 # Run all R files in run list below
 #-------------------------------------
 
@@ -32,7 +27,8 @@
 
 # 1)
 # Set the working directory to where your R scripts are located
-Git <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Carbon-Markets"
+
+Git <- "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/TVP-VAR-for-Compliance-Carbon-Markets"
 setwd(Git)
 
 # 1)
@@ -52,9 +48,8 @@ source("Packages.r")
     # Warnings may appear after running script, this is expected. 
     # Continue running the scripts in order.
 
-    # Merge Refinitiv HBEA prices - Merges Refinitiv HBEA price data with existing datasets
     setwd(Git)
-    source("Merge Refinitiv HBEA prices.r")
+    source("Exchange Rate Conversion.r")
 
     # Warnings may appear after running script, this is expected. 
     # Continue running the scripts in order.
@@ -71,7 +66,7 @@ source("Weekly Returns.r")
 # 1)
 # TVP-VAR model - Fits a Time-Varying Parameter Vector Autoregression model on the dataset
 setwd(Git)
-source("TVP-VAR model.r")
+source("Asymmetric TVP-VAR model.r")
 
 # Finished
 message("All scripts have been run successfully.")

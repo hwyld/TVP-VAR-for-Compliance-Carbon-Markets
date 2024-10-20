@@ -1,5 +1,4 @@
 ### Econometrics Research Project , Semester 2, 2024
-## The pursuit of a global carbon market; A time varying analysis of international compliance carbon markets
 ## Centralised functions for installing and loading packages and setting working directories
 ## Henry Wyld
 ## Date of creation: 2024-07-19

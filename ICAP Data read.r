@@ -1,5 +1,4 @@
 ### Econometrics Research Project , Semester 2, 2024
-## The pursuit of a global carbon market; A time varying analysis of international compliance carbon markets
 ## Read the ICAP Price Explorer data and format in R
 ## Author: Henry Wyld
 ## Date of creation: 2024-07-19

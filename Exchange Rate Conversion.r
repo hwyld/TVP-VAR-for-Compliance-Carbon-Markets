@@ -1,5 +1,4 @@
 ## Econometrics Research Project , Semester 2, 2024
-## The pursuit of a global carbon market; A time varying analysis of international compliance carbon markets
 ## Converting all domestic currency prices into EUR denominated prices
 ## Author: Henry Wyld
 ## Date of creation: 2024-08-04
@@ -21,9 +20,6 @@ setwd(Git)
 
 ## Read the datasets from CSV files ##
 #-----------------------------------------
-
-# Read exchange rate data
-exchange_rate_data1 <- readr::read_csv("Refinitiv_Exchange_Rates.csv")
 
 # Read exchange rate data 'EUR Cross Rates' sheet xlsx from Refinitiv
 exchange_rate_data <- readxl::read_excel("EUR Cross Rates 20Y 16082024.xlsx", sheet = "Table Data")

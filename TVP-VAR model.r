@@ -1,5 +1,4 @@
 ### Econometrics Research Project , Semester 2, 2024
-## The pursuit of a global carbon market; A time varying analysis of international compliance carbon markets
 ## TVP-VAR model estimation procedures in R using the ConnectednessApproach package
 ## Author: Henry Wyld
 ## Date of creation: 2024-03-20
