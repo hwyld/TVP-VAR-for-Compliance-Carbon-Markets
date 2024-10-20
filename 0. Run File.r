@@ -66,6 +66,8 @@ source("Packages.r")
     setwd(Git)
     source("Create Research Data.r")
 
+    # may have to run this independently to ensure the correct working directory is set
+
 # 2)
 # Weekly Returns - Calculates weekly returns from the processed data
 setwd(Git)
