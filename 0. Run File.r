@@ -10,8 +10,12 @@
 # If want to reproduce from raw data, then:
 #-------------------------------------
 # Need the following source files 
+#-------------------------------------
 # Store the Folder Named 'Data' in your working directory
-# Place EUR Cross Rates 20Y 16082024 into the working folder, not the data folder
+# Store the following files in your working director
+# EUR Cross Rates 20Y 16082024
+# events_study_data.csv
+#-------------------------------------
 # Run all R files in run list below
 #-------------------------------------
 
@@ -39,6 +43,9 @@ setwd(Git)
 
 # 1)
 # Load the necessary packages
+
+## Go into Packages.r and define your working directory for Git in the function set_working_directories
+
 source("Packages.r")
 
     # ICAP Data Read - Loads and preprocesses data from ICAP

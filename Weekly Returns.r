@@ -338,7 +338,10 @@ sum(is.na(Research_Data_weekly_volatility))
 #---------------------------------------
 library(moments)  # for skewness and kurtosis
 library(ggplot2)  # for plotting
+
+install.packages("forecast")  # Install the forecast package if not already installed
 library(forecast) # for ACF calculation and Ljung-Box test
+
 library(stargazer) # for table export
 
 #### Descriptive statistics with ACF p-value calculation ####

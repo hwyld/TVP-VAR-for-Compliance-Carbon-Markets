@@ -305,7 +305,7 @@ run_and_save_tvp_var <- function(asym_series, suffix) {
 # Run TVP-VAR and generate plots for both returns and volatility
 DCA_return <- run_and_save_tvp_var(asym_return, "r")
 
-IRF(Phi=DCA_return[[1]]$B, Sigma=DCA_return[[1]]$Q, nfore=10, orth=TRUE)
+# IRF(Phi=DCA_return[[1]]$B, Sigma=DCA_return[[1]]$Q, nfore=10, orth=TRUE)
 
 #DCA_vol <- run_and_save_tvp_var(asym_vol, "v")
 # Initialize empty lists to store the dataframes for each specification

@@ -86,20 +86,20 @@ load_packages <- function(update = FALSE) {
 }
 
 # # Function to set and return working directories as a list of variables
-# set_working_directories <- function() {
-#   directories <- list(
-#     Git = Git,
-#     # ICAP_Data = paste0(Git, "/Data/ICAP"),
-#     # Clearblue_Data = paste0(Git, "/Data/Clearblue Markets")
-#   )
+set_working_directories <- function() {
+  directories <- list(
+    Git = "C:/Users/henry/OneDrive - The University of Melbourne/GitHub/Final Estimation for Research Project",
+    ICAP_Data = paste0(Git, "/Data/ICAP"),
+    Clearblue_Data = paste0(Git, "/Data/Clearblue Markets")
+  )
 
-#   for (name in names(directories)) {
-#     assign(name, directories[[name]], envir = .GlobalEnv)
-#   }
+  for (name in names(directories)) {
+    assign(name, directories[[name]], envir = .GlobalEnv)
+  }
 
-#   return(directories)
-# }
+  return(directories)
+}
 
 # Call the functions to load packages and set directories when this script runs
 load_packages(update = FALSE)
-# set_working_directories()
+set_working_directories()
