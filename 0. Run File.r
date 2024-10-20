@@ -13,8 +13,9 @@
 #-------------------------------------
 # Store the Folder Named 'Data' in your working directory
 # Store the following files in your working director
-# EUR Cross Rates 20Y 16082024
-# events_study_data.csv
+# a) EUR Cross Rates 20Y 16082024
+# b) events_study_data.csv
+# c) Data folder containing the ICAP and Clearblue data
 #-------------------------------------
 # Run all R files in run list below
 #-------------------------------------
@@ -24,7 +25,7 @@
 # Need the following file:
 # Cleaned Research Data: ("Research_data.csv") - source from Git wd
 # Event Study data: ("events_study_data.csv") - source from Git wd
-# Only Run those files marked 1) in run list below
+# Only Run those files marked from 2) in run list below
 #-------------------------------------
 
 # 1)
@@ -44,10 +45,15 @@ setwd(Git)
 # 1)
 # Load the necessary packages
 
+### BEFORE YOU RUN ###
+#-------------------------------------
 ## Go into Packages.r and define your working directory for Git in the function set_working_directories
-
+#-------------------------------------
 source("Packages.r")
 
+#-------------------------------------
+# 1) IF REPRODUCING FROM RAW DATA
+#-------------------------------------
     # ICAP Data Read - Loads and preprocesses data from ICAP
     source("ICAP Data Read.r")
 
@@ -72,16 +78,23 @@ source("Packages.r")
     source("Create Research Data.r")
 
     # may have to run this independently to ensure the correct working directory is set
+#-------------------------------------
 
-# 2)
+#-------------------------------------
+# 2) IF NOT REPRODUCING FROM RAW DATA
+#-------------------------------------
 # Weekly Returns - Calculates weekly returns from the processed data
 setwd(Git)
 source("Weekly Returns.r")
 
 # 3)
 # TVP-VAR model - Fits a Time-Varying Parameter Vector Autoregression model on the dataset
+#-------------------------------------
+# RUN THIS FILE SEPARATELY
+#-------------------------------------
 setwd(Git)
 source("Asymmetric TVP-VAR model.r")
+
 
 # Finished
 message("All scripts have been run successfully.")
