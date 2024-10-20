@@ -84,21 +84,21 @@ load_packages <- function(update = FALSE) {
   mapply(check_and_install, names(packages), packages)
 }
 
-# Function to set and return working directories as a list of variables
-set_working_directories <- function() {
-  directories <- list(
-    Git = Git,
-    # ICAP_Data = paste0(Git, "/Data/ICAP"),
-    # Clearblue_Data = paste0(Git, "/Data/Clearblue Markets")
-  )
+# # Function to set and return working directories as a list of variables
+# set_working_directories <- function() {
+#   directories <- list(
+#     Git = Git,
+#     # ICAP_Data = paste0(Git, "/Data/ICAP"),
+#     # Clearblue_Data = paste0(Git, "/Data/Clearblue Markets")
+#   )
 
-  for (name in names(directories)) {
-    assign(name, directories[[name]], envir = .GlobalEnv)
-  }
+#   for (name in names(directories)) {
+#     assign(name, directories[[name]], envir = .GlobalEnv)
+#   }
 
-  return(directories)
-}
+#   return(directories)
+# }
 
 # Call the functions to load packages and set directories when this script runs
 load_packages(update = FALSE)
-set_working_directories()
+# set_working_directories()
